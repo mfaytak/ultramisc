@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # subsetter.py: pick out a subset of acquisitions in an experiment directory.
-# usage: python subsetter.py 
+# usage: python subsetter.py expdir
 
 # TODO test both options (delete, not delete)
 
