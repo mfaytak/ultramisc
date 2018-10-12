@@ -4,13 +4,10 @@
 ssanova-formatter.py: Extract pairs of columns from EdgeTrak-produced .con files 
 to generate CSV files that Jeff Mielke's tongue_ssanova.R can operate on.
 Extracts only the center frame in a sequence.
-
 Usage
-  $ python ssanova-formatter.py dirname > [output file]
-
+  $ python ssanova-formatter.py dirname > [output file].txt
 Arguments
   dirname  dir containing all files described below
-
 Requirements for a well-formatted output:
 1. Each acquisition (consisting of audio, ultrasound images, a TextGrid, a frame synchronization file, and a .con file output from EdgeTrak) is in a separate subdirectory in the parent directory.
 2. Speaker ID is given before an underscore in the top-level directory name (i.e., /.../SUBJECT_* is called as dirname and fed into basedir).
@@ -38,7 +35,7 @@ except IndexError:
 	sys.exit(2)
 
 # define relevant vowel labels; change as required
-vow = re.compile("^(UW1|UH1)")
+vow = re.compile("^(AE1|IY1|UW1|OW1|UH1)")
 
 # generate header of output file
 head = '\t'.join(["speaker","acq","token","ctrFrame","vowel","X","Y"])
@@ -55,12 +52,18 @@ for dirs, subdirs, files in os.walk(basedir):
 		if not '.textgrid' in textgrid.lower():
 			continue
 
-		# .con file
-		basename = textgrid.split('.')[0] # may not be general enough
-		con_file = os.path.join(dirs,str(basename + '.con'))
+		# get the support file names
+		if 'bpr' in textgrid.lower():
+			basename = textgrid.split('.')[0] + '.bpr'
+		else:
+			basename = textgrid.split('.')[0]
+		
+		con_file = os.path.join(dirs, str(basename + '.con'))
+		con_file = con_file.replace('.bpr', '')
 
 		# .sync.txt file into a list
-		sync = os.path.join(dirs,str(basename + '.bpr.sync.txt'))
+		# TODO add .bpr.sync.txt instead, if filename contains "bpr" extension
+		sync = os.path.join(dirs, str(basename + '.sync.txt'))
 		sync_lines = []
 		with open(sync, 'r') as s:
 			for line in s:
@@ -81,12 +84,25 @@ for dirs, subdirs, files in os.walk(basedir):
 		pm = audiolabel.LabelManager(from_file=os.path.join(dirs,textgrid), from_type='praat')
 
 		# for all relevant vowel intervals
-		for v,m in pm.tier('phone').search(vow, return_match=True):
+		for v,m in pm.tier(0).search(vow, return_match=True):
 			
+			# skip any tokens from non-target words
+			pron = pm.tier(1).label_at(v.center).text
+			if pron not in ["BUH", "FUH", "BUW", "BOOW", "BAAE", "BIY"]:
+				continue
+			# correct UH1 vowel depending on pronunciation FUH or BUH
+			elif pron == "FUH": # TODO handle occasional FUW
+				phone = "VU"
+			elif pron == "BUH":
+				phone = "BU"
+			elif pron == "BOOW":
+				phone = "UW"
+			else:
+				phone = v.text.replace('1','')
+
 			# collect word/type information and adjust token count
-			stim_v = v.text
-			token_ct.append(stim_v)
-			token = token_ct.count(stim_v)
+			token_ct.append(phone)
+			token = token_ct.count(phone)
 
 			# find frame number corresponding to center of C in textgrid
 			v_midpoint = v.center
@@ -105,7 +121,12 @@ for dirs, subdirs, files in os.walk(basedir):
 				d = list(csvreader)
 				rows = sum(1 for row in d) # TODO rows = 100, generally
 				for t in range(0,rows):
-					x_val =  d[t][(2*col_n)-2]
-					y_val =  d[t][(2*col_n)-1]
-					row_out = '\t'.join([spkr,basename,str(token),str(ctr_match),stim_v,x_val,y_val])
+					try:
+						x_val =  d[t][(2*col_n)-2]
+						y_val =  d[t][(2*col_n)-1]
+					except IndexError:
+						print("Problem accessing {}".format(con_file))
+						sys.exit(2)
+					
+					row_out = '\t'.join([spkr,basename,str(token),str(ctr_match),phone,x_val,y_val])
 					print(row_out)
