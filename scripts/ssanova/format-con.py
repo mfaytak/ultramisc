@@ -49,7 +49,7 @@ token_ct = []
 for dirs, subdirs, files in os.walk(basedir):
 	for textgrid in files:
 
-		if not '.textgrid' in textgrid.lower():
+		if not '.ch1.textgrid' in textgrid.lower():
 			continue
 
 		# get the support file names
@@ -62,7 +62,6 @@ for dirs, subdirs, files in os.walk(basedir):
 		con_file = con_file.replace('.bpr', '')
 
 		# .sync.txt file into a list
-		# TODO add .bpr.sync.txt instead, if filename contains "bpr" extension
 		sync = os.path.join(dirs, str(basename + '.sync.txt'))
 		sync_lines = []
 		with open(sync, 'r') as s:
@@ -77,7 +76,7 @@ for dirs, subdirs, files in os.walk(basedir):
 		fr_idx = []
 		for bmp in bmp_list:
 			fr_num = re.search('.(\d+).bmp$',bmp)
-			fr_idx.append(fr_num.group(1))
+			fr_idx.append(int(fr_num.group(1))) # the int is crucial here: otherwise, min list idx (b/c list of strings!) will be returned
 		first_fr = min(fr_idx)
 		
 		# instantiate LabelManager
@@ -110,10 +109,9 @@ for dirs, subdirs, files in os.walk(basedir):
 			for s in sync_lines:
 				diff_list.append(abs(v_midpoint - s))
 			ctr_match = min(enumerate(diff_list), key=itemgetter(1))[0]
-			# TODO: fix this; apparently values of ctr_match = 100 cause Y coord. to not show up ???
 			
 			# translate center frame numer into an index for pairs of columns in .con file	
-			col_n = ctr_match - int(first_fr) # TODO if ctr_match == 100, then col_n = 100-first_fr
+			col_n = ctr_match - first_fr
 
 			# locate .con file and extract X, Y using index defined in col_n; print entire array
 			with open(con_file) as con:
