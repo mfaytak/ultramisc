@@ -16,13 +16,14 @@ parser.add_argument("directory", help="Experiment directory containing all subje
 args = parser.parse_args()
 
 # check for appropriate directory
+expdir = args.directory
 try:
-	expdir = args.directory
-except IndexError:
-	print("\tDirectory provided doesn't exist")
-	ArgumentParser.print_usage
-	ArgumentParser.print_help
-	sys.exit(2)
+    assert os.path.exists(args.directory)
+except AssertionError:
+    # TODO raise exception
+    print("\tDirectory provided doesn't exist")
+    parser.print_help()
+    sys.exit(2)
 
 data_in = os.path.join(expdir,"frames.npy")
 data = np.load(data_in)
@@ -89,7 +90,7 @@ for s in np.unique(md['subject']):
 
 	out_filename = "{}_pca.csv".format(s)
 	out_path = os.path.join(expdir,out_filename)
-	np.savetxt(out_filename, d, fmt="%s", delimiter ='\t')
+	np.savetxt(out_path, d, fmt="%s", delimiter ='\t')
 
 	# TODO once relevant, output one table across multiple subjects?
 

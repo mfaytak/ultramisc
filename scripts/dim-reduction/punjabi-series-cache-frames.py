@@ -24,12 +24,13 @@ parser.add_argument("directory", help="Experiment directory containing all subje
 args = parser.parse_args()
 
 # check for appropriate directory
+expdir = args.directory
 try:
-    expdir = args.directory
-except IndexError:
+    assert os.path.exists(args.directory)
+except AssertionError:
+    # TODO raise exception
     print("\tDirectory provided doesn't exist")
-    ArgumentParser.print_usage
-    ArgumentParser.print_help
+    parser.print_help()
     sys.exit(2)
 
 data = None
