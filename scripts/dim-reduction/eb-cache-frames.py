@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 # TODO
+# this is for Suzhou Chinese data
+# change vow and the conditional flow statements accordingly
 
 import os, re, glob, shutil
 from PIL import Image
