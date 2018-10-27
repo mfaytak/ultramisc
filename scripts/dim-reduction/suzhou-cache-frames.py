@@ -141,7 +141,7 @@ for rf in glob.glob(rawfile_glob_exp):
 		try:
 			nscanlines, npoints, junk = read_echob_metadata(rf)
 		except ValueError: 
-			print("WARNING: no data in {}.img.txt, please input:".format(basename))
+			print("WARNING: no data in {}.img.txt, please input:".format(acq))
 			nscanlines = int(input("\tnscanlines (usually 127) "))
 			npoints = int(input("\tnpoints (usually 1020) "))
 			junk = int(input("\tjunk (usually 36, or 1020 - 984) "))
