@@ -39,23 +39,12 @@ def read_echob_metadata(rawfile):
 	
 	return nscanlines, npoints, junk
 
-
-def conversion_helper(frame, mask):
-	roi_frame = frame * mask
-	conv_roi_frame = np.flipud(conv.convert(np.flipud(roi_frame)))
-	srad_frame = us.srad(conv_roi_frame)
-	clean_frame = us.clean_frame(srad_frame)
-	return clean_frame
-
-# TODO make sure this is assigning a label to everything
-def coart_class(row):
-	# figure out how to make training words just be "training"
-	if row['pron'] in test_no_coart_words:
-		return "no_fric"
-	elif row['pron'] in apical_words:
-		return "apical"
-	else:
-		return "fric"
+#def conversion_helper(frame, mask):
+#	roi_frame = frame * mask
+#	conv_roi_frame = np.flipud(conv.convert(np.flipud(roi_frame)))
+#	srad_frame = us.srad(conv_roi_frame)
+#	clean_frame = us.clean_frame(srad_frame)
+#	return clean_frame
 
 # instantiate converter for pca_data images
 class Header(object):
@@ -69,7 +58,7 @@ class Probe(object):
 conv = None
 
 # sample frame output
-sample_frame = None
+# sample_frame = None
 
 # read in arguments
 parser = argparse.ArgumentParser()
@@ -87,21 +76,8 @@ except IndexError:
 	ArgumentParser.print_help
 	sys.exit(2)
 
-#header = '\t'.join(['subject','phone','LD'])
-#with open('suzhou_norm_medians.txt','w') as out:
-#    out.write(header + '\n')
-
-#pct_out = "percent_classified.txt" 
-#pct_out_head = "\t".join(["subj", "test", "coart", "classified_as", "pct_class"]) 
-#with open(pct_out, "w") as out:
-#	out.write(pct_out_head + "\n")
-
 frames_out = "frames_proc.npy"
 metadata_out = "frames_proc_metadata.pickle"
-
-# label test case by word type in metadata - coart from fric or not (or apical, or test)
-test_no_coart_words = ["IZ", "BIZX", "YZ"] # mark as "no_coart" 
-apical_words = ["SZ", "SZW"] # third level "apical"; useless for comparisons
 
 for root,directories,files in os.walk(expdir):
 
@@ -131,9 +107,9 @@ for root,directories,files in os.walk(expdir):
 		mask = mask.as_matrix()
 		pca_data = data[mask]
 		pca_md = md[mask]
+		pca_md = pca_md.reset_index(drop=True)
 
 		# define Converter parameters from first acq for first subj
-		# this will break if data from more than one ultrasound system is processed simultaneously
 		if conv is None:
 			print("Defining Converter ...")
 			header = Header()
@@ -150,13 +126,26 @@ for root,directories,files in os.walk(expdir):
 
 		# get mean frame and apply mask
 		mean_frame = pca_data.mean(axis=0)
+		conv_mean = np.flipud(conv.convert(np.flipud(mean_frame)))
+		plt.title("Mean frame, Spkr {:}".format(subject))
+		plt.imshow(conv_mean, cmap="Greys_r")
+		file_ending_mean = "subj{:}_mean.pdf".format(subject)
+		savepath_mean = os.path.join(root,d,file_ending_mean)
+		plt.savefig(savepath_mean)
 		roi_upper = 600
 		roi_lower = 300
+		roi_left = 20
+		roi_right = 100
 
+		# TODO give mask converted shape
 		while True:
-			mask = us.roi(mean_frame, upper=roi_upper, lower=roi_lower)
-			masked_frame = mean_frame * mask
-			conv_masked = np.flipud(conv.convert(np.flipud(masked_frame)))
+			mask = us.roi(mean_frame, 
+				upper=roi_upper, 
+				lower=roi_lower,
+				left=roi_left,
+				right=roi_right)
+			masked_mean = mean_frame * mask
+			conv_masked = np.flipud(conv.convert(np.flipud(masked_mean)))
 			plt.title("Mean frame and RoI, Spkr {:}".format(subject))
 			plt.imshow(conv_masked, cmap="Greys_r")
 			file_ending_roi = "subj{:}_roi.pdf".format(subject)
@@ -165,65 +154,74 @@ for root,directories,files in os.walk(expdir):
 			good_roi = input("Inspect {:}. Good RoI? (Y/N) ".format(savepath_roi))
 
 			# TODO improve typo handling
-			if good_roi in yes_no:
-				if good_roi == "Y":
+			if good_roi.upper() in yes_no:
+				if good_roi.upper() == "Y":
 					break
 				else:
-					roi_upper = int(input("Please provide a new upper bound for RoI (currently) {:}: ".format(roi_upper)))
-					roi_lower = int(input("Please provide a new lower bound for RoI (currently) {:}: ".format(roi_lower)))
+					roi_upper = int(input("Please provide a new upper bound for RoI (currently {:}): ".format(roi_upper)))
+					roi_lower = int(input("Please provide a new lower bound for RoI (currently {:}): ".format(roi_lower)))
+					roi_left = int(input("Please provide a new left bound for RoI (currently {:}): ".format(roi_left)))
+					roi_right = int(input("Please provide a new right bound for RoI (currently {:}): ".format(roi_right)))
 			else:
 				print("Typo, try again ...")
 
 		# preallocate ultrasound frame array for PCA
 		conv_frame = conv.convert(pca_data[0])
-		pca_frames = np.empty([pca_data.shape[0]] + list(conv_frame.shape)) * np.nan
-		pca_frames = pca_frames.astype('uint8')
+		out_frames = np.empty([pca_data.shape[0]] + list(conv_frame.shape)) * np.nan
+		out_frames = out_frames.astype('uint8')
+
+		adj_radius = int(conv_frame.shape[0]/50) # for median filter
 
 		print("Preprocessing data for PCA ...")
 
-		total = pca_frames.shape[0]
+		# make a sample frame for reference
+		in_sample = pca_data[0]
+		masked_samp = in_sample * mask # using mask defined above
+		sradd_samp = us.srad(masked_samp)
+		convd_samp = np.flipud(conv.convert(np.flipud(sradd_samp)))
+		clean_samp = us.clean_frame(convd_samp, median_radius=adj_radius)
+		rescaled_samp = clean_samp * 255
+		sample_frame = rescaled_samp.astype(np.uint8)
+		plt.title("Sample frame, Spkr {:}".format(subject))
+		plt.imshow(sample_frame, cmap="Greys_r")
+		file_ending_sample = "subj{:}_sample.pdf".format(subject)
+		savepath_sample = os.path.join(root,d,file_ending_sample)
+		plt.savefig(savepath_sample)
+		print("Please check sample frame at {}!".format(savepath_sample))
 
 		# fill in preallocated array
-		# TODO parallelize this part
+		# TODO parallelize this part?
 		# TODO or perhaps the SRAD function
 
 		filt_hds = []
-
-		if sample_frame is None:
-			in_sample = pca_data[0]
-			roi_frame = in_sample * mask
-			conv_roi_frame = np.flipud(conv.convert(np.flipud(roi_frame)))
-			srad_frame = us.srad(conv_roi_frame)
-			clean_frame = us.clean_frame(srad_frame)
-			plt.title("Sample frame, Spkr {:}".format(subject))
-			plt.imshow(clean_frame, cmap="Greys_r")
-			file_ending_sample = "subj{:}_sample.pdf".format(subject)
-			savepath_sample = os.path.join(root,d,file_ending_sample)
-			plt.savefig(savepath_sample)
-			print("Please check sample frame at {}!".format(savepath_sample))
+		total = out_frames.shape[0]
 
 		for idx,frame in enumerate(pca_data):
-			# see helper function
-			roi_frame = frame * mask
-			conv_roi_frame = np.flipud(conv.convert(np.flipud(roi_frame)))
-			srad_frame = us.srad(conv_roi_frame)
-			clean_frame = us.clean_frame(srad_frame)
-
-			pca_frames[idx,:,:] = clean_frame
-			filt_hds.append(sha1(clean_frame.ravel()).hexdigest()) # new sha1 hex
+			masked = frame * mask # using mask defined above
+			sradd = us.srad(masked)
+			convd = np.flipud(conv.convert(np.flipud(sradd)))
+			clean = us.clean_frame(convd, median_radius=adj_radius)
+			# copying to out_frames casts to np.uint8; rescaling required
+			rescaled = clean * 255
+			out_frames[idx,:,:] = rescaled
+			print(out_frames[idx].dtype)
+			# new sha1 hex: filtered, conv to np.uint8
+			filt_hds.append(sha1(out_frames[idx].ravel()).hexdigest()) 
 			print("\tAdded frame {} of {}".format(idx+1,total))
 
-		# TODO add new sha1 hex as a column in the df
-
-		filt_hds_col = pd.Series(filt_hds)
-		pca_md["sha1_filt"] = filt_hds_col.values
+		# add new sha1 hex as a column in the df
+		pca_md = pca_md.assign(sha1_filt=pd.Series(filt_hds, index=pca_md.index))
 
 		# make sure there is one metadata row for each image frame
-		assert(len(pca_md) == pca_frames.shape[0])
+		assert(len(pca_md) == out_frames.shape[0])
+
+		# for debugging
+		# pca_md.to_csv(os.path.join(root,d,"test.csv"))
 
 		# compare checksums
-		assert(pca_md.loc[0, 'sha1_filt'] == sha1(pca_frames[0].ravel()).hexdigest())
-		assert(pca_md.loc[len(md)-1,'sha1_filt'] == sha1(pca_frames[-1].ravel()).hexdigest())
-
-		np.save(os.path.join(root,d,frames_out), pca_frames)
+		assert(pca_md.loc[0, 'sha1_filt'] == sha1(out_frames[0].ravel()).hexdigest())
+		assert(pca_md.loc[len(pca_md)-1,'sha1_filt'] == sha1(out_frames[-1].ravel()).hexdigest())
+		
+		# outputs
+		np.save(os.path.join(root,d,frames_out), out_frames)
 		pca_md.to_pickle(os.path.join(root,d,metadata_out))
