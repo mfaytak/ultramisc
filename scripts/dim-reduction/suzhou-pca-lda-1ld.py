@@ -39,13 +39,17 @@ except IndexError:
 n_components = int(args.pca_dim)
 n_lds = int(args.lda_dim)
 
-pct_out = "percent_classified.txt" 
+pct_out = "percent_classified_1ld.txt" 
+pct_out_path = os.path.join(expdir,pct_out)
 pct_out_head = "\t".join(["subj", "test", "coart", "classified_as", "pct_class"]) 
-with open(pct_out, "w") as out:
+with open(pct_out_path, "w") as out:
 	out.write(pct_out_head + "\n")
 
 for root,directories,files in os.walk(expdir):
 	for d in directories:
+
+		if d.startswith("."):
+			continue
 
 		subject = re.sub("[^0-9]","",d)
 
@@ -66,7 +70,7 @@ for root,directories,files in os.walk(expdir):
 		sh_mask = (md['pron'].isin(["XIZ", "XYZ", "XIY", "XIEX", "XEU"])) & (md['phone'] == "SH")
 		#s_mask = (md['pron'].isin(["SAAE", "SEI", "SUW", "SIEX", "SOOW", "SZ", "SZW"])) & (md['phone'] == "S")       
 		mask = vow_mask | sh_mask
-		mask = mask.as_matrix()
+		mask = mask.values
 		pca_data = data[mask]
 		pca_md = md[mask]
 
@@ -207,19 +211,32 @@ for root,directories,files in os.walk(expdir):
 				rows_by_clco = rows_by_co.loc[rows_by_co.cls == t]
 				prop_class = round(rows_by_clco.shape[0]/rows_by_co.shape[0], 4)
 				print("\t{}, coart {} \t classified as {} -- {}".format("laminal",c,t,prop_class))
-				with open(pct_out, "a") as out:
+				with open(pct_out_path, "a") as out:
 					out.write("\t".join([subject,"laminal",c,t,str(prop_class)]) + "\n")
 			print("\t---")
 
  # gather and open all csv files in directory, then put together into one csv file
-big_df_list = []
+big_ld_list = []
 for root,directories,files in os.walk(expdir):
 	for f in files:
-		if f.endswith(".csv"):
+		if f.endswith("ldas_1ld.csv"):
 			csv_back_in = os.path.join(root,f)
 			one_subj = pd.read_csv(csv_back_in)
-			big_df_list.append(one_subj)
+			big_ld_list.append(one_subj)
 
-big_df = pd.concat(big_df_list, axis=0)
-big_csv_path = os.path.join(expdir,"suzhou_all_subj_ldas_1ld.csv")
-big_df.to_csv(big_csv_path, index_label=False)
+big_ld = pd.concat(big_ld_list, axis=0)
+big_ld_csv_path = os.path.join(expdir,"suzhou_all_subj_ldas_1ld.csv")
+big_ld.to_csv(big_ld_csv_path, index=False)
+
+# do the same for PCs
+big_pc_list = []
+for root,directories,files in os.walk(expdir):
+	for f in files:
+		if f.endswith("pcs_1ld.csv"):
+			csv_back_in = os.path.join(root,f)
+			one_subj = pd.read_csv(csv_back_in)
+			big_pc_list.append(one_subj)
+
+big_pc = pd.concat(big_pc_list, axis=0)
+big_pc_csv_path = os.path.join(expdir,"suzhou_all_subj_pcs_1ld.csv")
+big_pc.to_csv(big_pc_csv_path, index=False)
