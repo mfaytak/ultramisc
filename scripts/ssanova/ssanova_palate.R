@@ -1,5 +1,5 @@
 #######################################################################################
-# tongue_ssanova.r                                
+# ssanova_palate.R                                
 # functions for SSANOVA comparisons of tongue traces in polar coordinates using gss 
 # Jeff Mielke						revised October 22, 2013
 # Susan Lin and Matt Faytak			revised January 2015 (palate and printing func.)
