@@ -149,11 +149,15 @@ tongue.ss <- function(data, data.cat='word', flip=FALSE, length.out=1000, alpha=
 
 #PLOT THE SSANOVA RESULTS
 plot.tongue.ss <- function(ss.result, data.cat, palate=NULL, lwd=3, main='', CI.fill=FALSE, printing=FALSE, show.legend=T, plot.labels=c(main,'X','Y'),
-                           overplot=FALSE, xlim=NULL, ylim=NULL){  
+                           overplot=FALSE, grayscale=FALSE, xlim=NULL, ylim=NULL){  
     n_categories <- length(levels(ss.result[,data.cat]))
-    Fit.palette <- rainbow(n_categories, v=0.75)
-    CI.palette <- rainbow(n_categories, alpha=0.25, v=0.75)
-
+    if (grayscale==TRUE){
+    	Fit.palette <- gray((1:n_categories)/n_categories - 1/n_categories)
+    		CI.palette <- gray((1:n_categories)/n_categories - 1/n_categories, alpha=0.25)
+    }else{
+    	Fit.palette <- rainbow(n_categories, v=0.75)
+    	CI.palette <- rainbow(n_categories, alpha=0.25, v=0.75)
+    }
     xrange = range(c(ss.result$X, ss.result$ss.lower.CI.X, ss.result$ss.upper.CI.X))
     yrange = range(c(ss.result$ss.Fit, ss.result$ss.lower.CI.Y, ss.result$ss.upper.CI.Y))
     
@@ -171,7 +175,7 @@ plot.tongue.ss <- function(ss.result, data.cat, palate=NULL, lwd=3, main='', CI.
         ylim <- yrange
     }
     if (!overplot){
-        plot(0, 0, xlim=xlim, ylim=ylim,xlab=plot.labels[2],ylab=plot.labels[3], main=plot.labels[1], type='n')
+        plot(0, 0, xlim=xlim, ylim=ylim, xaxt="n", yaxt="n", xlab='',ylab='', main=plot.labels[1], type='n')
     }
 
     if (printing){
@@ -188,6 +192,7 @@ plot.tongue.ss <- function(ss.result, data.cat, palate=NULL, lwd=3, main='', CI.
                 #}
             lines(subdata$X, subdata$ss.Fit, type='l', col=Fit.palette[i], lwd=lwd, lty=i)
             }
+        lines(palate,lwd=1)
         if (show.legend){
             #legend(xrange[1]+0.8*diff(xrange), yrange[1]+0.3*diff(yrange), c(levels(ss.result[,data.cat])), lwd=lwd, col=Fit.palette, lty=1:n_categories)
             legend(xlim[1]+0.8*diff(ylim), ylim[1]+0.3*diff(ylim), c(levels(ss.result[,data.cat])), lwd=lwd, col=Fit.palette, lty=1:n_categories)
@@ -206,7 +211,7 @@ plot.tongue.ss <- function(ss.result, data.cat, palate=NULL, lwd=3, main='', CI.
                 }
             lines(subdata$X, subdata$ss.Fit, type='l', col=Fit.palette[i], lwd=lwd)
             }
-        lines(palate,lwd=2)
+        lines(palate,lwd=1)
         if (show.legend){
             legend('bottomright', c(levels(ss.result[,data.cat])), lwd=lwd, col=Fit.palette)
         }
@@ -218,7 +223,7 @@ guess.data.cat <- function(data, data.cat){
 }
 
 #PLOT THE ORIGINAL DATA
-show.traces <- function(data, data.cat='word', to.highlight=c(''), to.plot=c(''), token.label='token', flip=TRUE, main='', overplot=FALSE, is.polar=FALSE, origin=c(0,0)){ 
+show.traces <- function(data, data.cat='word', to.highlight=c(''), to.plot=c(''), token.label='token', flip=TRUE, main='', overplot=FALSE, is.polar=FALSE, grayscale=FALSE, origin=c(0,0)){ 
     if (sum(!names(data)%in%c('token','X','Y'))==1 & !data.cat%in%names(data)){
         data.cat <- names(data)[!names(data)%in%c('token','X','Y')]
         warning(paste('Using column \"',data.cat,'" to group the data.\nTo avoid this warning, use "show.traces(data, \'',data.cat,'\')"',sep=''))
@@ -241,8 +246,13 @@ show.traces <- function(data, data.cat='word', to.highlight=c(''), to.plot=c('')
     }
     categories <- levels(data[,data.cat])
     n_categories <- length(categories)
-    trace.palette <- rainbow(n_categories, v=0.7)
-    ghost.palette <- rainbow(n_categories, v=0.7, alpha=0.1)
+    if (grayscale==TRUE){
+    	trace.palette <- gray((1:n_categories)/n_categories - 1/n_categories)
+    	ghost.palette <- gray((1:n_categories)/n_categories - 1/n_categories)
+    }else{
+   		trace.palette <- rainbow(n_categories, v=0.7)
+    	ghost.palette <- rainbow(n_categories, v=0.7, alpha=0.1)
+    }
     if (overplot==FALSE){
         plot(0,0,xlim=range(data$X), ylim=range(data$Y),xlab='X',ylab='Y', main=main)
     }
@@ -262,14 +272,14 @@ show.traces <- function(data, data.cat='word', to.highlight=c(''), to.plot=c('')
 #CALCULATE AN SSANOVA IN POLAR COORDINATES AND THEN PLOT IT BACK IN CARTESIAN COORDINATES
 polar.ssanova <- function(data, data.cat='word', palate=NULL, scale=1, origin.method='xmean_ymin', debug=FALSE, plotting=TRUE, main='', 
                           CI.fill=FALSE, printing=FALSE, flip=TRUE, cartesian.only=FALSE, is.polar=FALSE, show.legend=TRUE, 
-                          plot.labels=c(main,'X','Y'), overplot=FALSE, xlim=NULL, ylim=NULL, lwd=3, alpha=1.4){
+                          plot.labels=c(main,'X','Y'), overplot=FALSE, grayscale=FALSE, xlim=NULL, ylim=NULL, lwd=3, alpha=1.4){
     if (sum(!names(data)%in%c('token','X','Y'))==1 & !data.cat%in%names(data)){
         data.cat <- names(data)[!names(data)%in%c('token','X','Y')]
         warning(paste('Using column \"',data.cat,'" to group the data.\nTo avoid this warning, use "polar.ssanova(data, \'',data.cat,'\')"',sep=''))
     }
-    #if (flip==TRUE){
-    #    data$Y <- -data$Y
-    #}
+    if (flip==TRUE){
+        data$Y <- -data$Y
+    }
     data.scaled <- us.rescale(data, scale)
     if (cartesian.only){
         ss.pol.cart <- tongue.ss(data.scaled, data.cat=data.cat, flip=flip, alpha=alpha)
@@ -297,10 +307,10 @@ polar.ssanova <- function(data, data.cat='word', palate=NULL, scale=1, origin.me
     if (plotting){
         if (debug){
             ss.cart <- tongue.ss(data.scaled, data.cat=data.cat, flip=T)
-            plot.tongue.ss(ss.cart, data.cat, palate=palate, main=main, CI.fill=CI.fill, printing=printing, show.legend=show.legend, plot.labels=plot.labels, overplot=overplot, xlim=xlim, ylim=ylim, lwd=lwd)
-            plot.tongue.ss(ss.polar, data.cat, palate=palate, main=main, CI.fill=CI.fill, printing=printing, show.legend=show.legend, plot.labels=plot.labels, overplot=overplot, xlim=xlim, ylim=ylim, lwd=lwd)
+            plot.tongue.ss(ss.cart, data.cat, palate=palate, main=main, CI.fill=CI.fill, printing=printing, show.legend=show.legend, plot.labels=plot.labels, overplot=overplot, grayscale=grayscale, xlim=xlim, ylim=ylim, lwd=lwd)
+            plot.tongue.ss(ss.polar, data.cat, palate=palate, main=main, CI.fill=CI.fill, printing=printing, show.legend=show.legend, plot.labels=plot.labels, overplot=overplot, grayscale=grayscale, xlim=xlim, ylim=ylim, lwd=lwd)
         }
-        plot.tongue.ss(ss.pol.cart, data.cat, palate=palate, main=main, CI.fill=CI.fill, printing=printing, show.legend=show.legend, plot.labels=plot.labels, overplot=overplot, xlim=xlim, ylim=ylim, lwd=lwd)
+        plot.tongue.ss(ss.pol.cart, data.cat, palate=palate, main=main, CI.fill=CI.fill, printing=printing, show.legend=show.legend, plot.labels=plot.labels, overplot=overplot, grayscale=grayscale, xlim=xlim, ylim=ylim, lwd=lwd)
     }
     return(ss.pol.cart) 
 }
