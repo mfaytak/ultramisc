@@ -17,7 +17,7 @@ Requirements for a well-formatted output:
 '''
 
 # Authors: Matthew Faytak (faytak@ucla.edu) Copyright (c) 2015
-# Last modified 10-2018
+# Last modified 11-2018
 
 import os, sys, re, glob
 import audiolabel
@@ -34,15 +34,18 @@ except IndexError:
 	usage()
 	sys.exit(2)
 
-# define relevant vowel labels; change as required
-vow = re.compile("^(AE1|IY1|UW1|OW1|UH1)")
+out_file = os.path.join(basedir, os.path.split(basedir)[-1] + "_cons.txt")
 
 # generate header of output file
 head = '\t'.join(["speaker","acq","token","ctrFrame","vowel","X","Y"])
-print(head) # TODO write to a file instead
+with open(out_file, "w") as out:
+	out.write(head + "\n")
+
+# define relevant vowel labels; change as required
+vow = re.compile("^(AE1|IY1|UW1|OW1|UH1)")
 
 # find speaker; initialize token counter list
-spkr = os.path.basename(basedir).split('_')[0]
+spkr = "S" + re.sub("[^0-9]", "", basedir)
 token_ct = []
 
 # generate the rest of the output file
@@ -78,6 +81,7 @@ for dirs, subdirs, files in os.walk(basedir):
 			fr_num = re.search('.(\d+).bmp$',bmp)
 			fr_idx.append(int(fr_num.group(1))) # the int is crucial here: otherwise, min list idx (b/c list of strings!) will be returned
 		first_fr = min(fr_idx)
+		last_fr = max(fr_idx)
 		
 		# instantiate LabelManager
 		pm = audiolabel.LabelManager(from_file=os.path.join(dirs,textgrid), from_type='praat')
@@ -108,23 +112,35 @@ for dirs, subdirs, files in os.walk(basedir):
 			diff_list = []
 			for s in sync_lines:
 				diff_list.append(abs(v_midpoint - s))
-			ctr_match = min(enumerate(diff_list), key=itemgetter(1))[0]
+			ctr_match = min(enumerate(diff_list), key=itemgetter(1))[0] # ctr_match is 77, which is not in range at all
 			
+			# check to ensure that it's within the recording window
+			if first_fr > ctr_match or last_fr < ctr_match:
+				print("WARNING ({}):".format(con_file))
+				print("\t target at frame {} is outside of extracted frames; skipping.".format(ctr_match))
+				print("\tIf there is a double production, disregard this warning.")
+				continue
+
 			# translate center frame numer into an index for pairs of columns in .con file	
-			col_n = ctr_match - first_fr
+			col_n = ctr_match - first_fr 
 
 			# locate .con file and extract X, Y using index defined in col_n; print entire array
 			with open(con_file) as con:
-				csvreader = reader(con, delimiter="\t")
-				d = list(csvreader)
-				rows = sum(1 for row in d) # TODO rows = 100, generally
-				for t in range(0,rows):
-					try:
-						x_val =  d[t][(2*col_n)-2]
-						y_val =  d[t][(2*col_n)-1]
-					except IndexError:
-						print("Problem accessing {}".format(con_file))
-						sys.exit(2)
+				with open(out_file,"a") as out:
+					csvreader = reader(con, delimiter="\t")
+					d = list(csvreader)
+					rows = sum(1 for row in d) # TODO rows = 100, generally
+
+					x_col = (2*col_n)-2
+					y_col = (2*col_n)-1
+
+					for t in range(0,rows):
+						try:
+							x_val = d[t][x_col]
+							y_val = d[t][y_col]
+						except IndexError:
+							print("WARNING: other problem accessing {}):".format(con_file))
+							sys.exit(2)
 					
-					row_out = '\t'.join([spkr,basename,str(token),str(ctr_match),phone,x_val,y_val])
-					print(row_out)
+						row_out = '\t'.join([spkr,basename,str(token),str(ctr_match),phone,x_val,y_val])
+						out.write(row_out + "\n")
