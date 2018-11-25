@@ -41,9 +41,15 @@ for dirs, subdirs, files in os.walk(basedir):
 
 		if os.path.isfile(con_file):
 			continue
+			# TODO check here for other files ending in .con
 		else:
 			print("\tNo .con file in {}".format(basename))
 			missing_files += 1
+
+		# TODO check for .con files whose basenames don't match
+		#elif # another file ends in .con that isn't con_file
+
+		# TODO check for multiple .con files
 
 # print out some encouragement
 if missing_files == 0:
