@@ -3,27 +3,15 @@
 # TODO RENAME extract frame BMPs for contour extraction
 # from ultrasonix data, using ultratils.exp.Exp class
 # This is set up to extract Kejom vowel and fricative data
-# usage: python TODO_RENAME.py expdir (-f / --flop)
+# usage: python ulx-extract-frames.py expdir (-f / --flop)
 
 
-import os, re, glob, shutil
+import os, re, shutil
 from PIL import Image
 from ultratils.exp import Exp
 import numpy as np
 import argparse
 import audiolabel
-from operator import itemgetter
-#from ultratils.rawreader import RawReader
-#from ultratils.pysonix.scanconvert import Converter
-
-#def read_stimfile(stimfile):
-#    with open(stimfile, "r") as stfile:
-#        stim = stfile.read().rstrip('\n')
-#    return stim
-
-# empty RawReader and Converter handles
-#rdr = None
-#conv = None
 
 # set of segments being searched for
 vre = re.compile(
@@ -113,8 +101,10 @@ with open(err_log, "w") as out:
 			out.write("\t".join([a.timestamp,"sync"])+"\n")
 			continue
 		tg = str(a.abs_image_file + ".ch1.TextGrid")
-		shutil.copy(a.abs_stim_file, copy_dir)
 		shutil.copy(tg, copy_dir)
+		sync_txt = str(a.abs_image_file + ".sync.txt")
+		shutil.copy(sync_txt, copy_dir)
+		shutil.copy(a.abs_stim_file, copy_dir)
 		shutil.copy(os.path.splitext(a.abs_audio_file)[0]+".ch1.wav", copy_dir)
 		
 		# instantiate LabelManager
@@ -168,5 +158,5 @@ with open(err_log, "w") as out:
 					d = np.fliplr(d)
 
 				frame = Image.fromarray(d)
-				imgname = '{:}.{:}.{:}.bmp'.format(a.timestamp, word, l.text)
+				imgname = '{:}.{:}.bmp'.format(a.timestamp, l.text)
 				frame.save(os.path.join(copy_dir, imgname)) 

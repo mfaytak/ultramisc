@@ -24,15 +24,23 @@ import audiolabel
 from csv import reader
 from operator import itemgetter
 
-# TODO use argument parser for better options
-def usage():
-	print(sys.exit(__doc__))
+# read in arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("directory", help="Experiment directory containing all subjects")
+parser.add_argument("-f", "--flank", help="Number of frames surrounding midpoint frame to extract", action='store_true')
+args = parser.parse_args()
 
-try:
-	basedir = os.path.abspath(sys.argv[1])
-except IndexError:
-	usage()
+basedir = args.directory
+if not os.path.exists(basedir):
+	print("\tDirectory provided doesn't exist")
+	ArgumentParser.print_usage
+	ArgumentParser.print_help
 	sys.exit(2)
+
+if args.flank:
+	flank = args.flank
+else:
+	flank = 0
 
 out_file = os.path.join(basedir, os.path.split(basedir)[-1] + "_cons.txt")
 
@@ -131,16 +139,17 @@ for dirs, subdirs, files in os.walk(basedir):
 					d = list(csvreader)
 					rows = sum(1 for row in d) # TODO rows = 100, generally
 
-					x_col = (2*col_n)-2
-					y_col = (2*col_n)-1
+					for fr in range(col_n - int(args.flank), (col_n + int(args.flank))+1):
+						x_col = (2*fr)-2
+						y_col = (2*fr)-1
 
-					for t in range(0,rows):
-						try:
-							x_val = d[t][x_col]
-							y_val = d[t][y_col]
-						except IndexError:
-							print("WARNING: other problem accessing {}):".format(con_file))
-							sys.exit(2)
+						for t in range(0,rows):
+							try:
+								x_val = d[t][x_col]
+								y_val = d[t][y_col]
+							except IndexError:
+								print("WARNING: other problem accessing {}):".format(con_file))
+								sys.exit(2)
 					
-						row_out = '\t'.join([spkr,basename,str(token),str(ctr_match),phone,x_val,y_val])
-						out.write(row_out + "\n")
+							row_out = '\t'.join([spkr,basename,str(token),str(ctr_match),phone,x_val,y_val])
+							out.write(row_out + "\n")
