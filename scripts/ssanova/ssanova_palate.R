@@ -3,6 +3,7 @@
 # functions for SSANOVA comparisons of tongue traces in polar coordinates using gss 
 # Jeff Mielke						revised October 22, 2013
 # Susan Lin and Matt Faytak			revised January 2015 (palate and printing func.)
+# Matt Faytak 						revised February 2019
 #######################################################################################
 #
 # BASIC COMMAND TO GENERATE AN SSANOVA PLOT (IF 'phone' IS THE NAME OF YOUR FACTOR)
@@ -57,7 +58,7 @@
 # cartesian.only: used by cart.ssanova()
 #       is.polar: if TRUE, the data is already in polar coordinates
 #         palate: if defined, uses a two-column DataFrame of X and Y coordinates
-#                 to draw a palate trace.
+#                 to draw a palate trace. Y values must be inverted.
 #
 #######################################################################################
 #
@@ -192,7 +193,7 @@ plot.tongue.ss <- function(ss.result, data.cat, palate=NULL, lwd=3, main='', CI.
                 #}
             lines(subdata$X, subdata$ss.Fit, type='l', col=Fit.palette[i], lwd=lwd, lty=i)
             }
-        lines(palate,lwd=1)
+        lines(palate,lwd=lwd)
         if (show.legend){
             #legend(xrange[1]+0.8*diff(xrange), yrange[1]+0.3*diff(yrange), c(levels(ss.result[,data.cat])), lwd=lwd, col=Fit.palette, lty=1:n_categories)
             legend(xlim[1]+0.8*diff(ylim), ylim[1]+0.3*diff(ylim), c(levels(ss.result[,data.cat])), lwd=lwd, col=Fit.palette, lty=1:n_categories)
@@ -211,7 +212,7 @@ plot.tongue.ss <- function(ss.result, data.cat, palate=NULL, lwd=3, main='', CI.
                 }
             lines(subdata$X, subdata$ss.Fit, type='l', col=Fit.palette[i], lwd=lwd)
             }
-        lines(palate,lwd=1)
+        lines(palate,lwd=lwd)
         if (show.legend){
             legend('bottomright', c(levels(ss.result[,data.cat])), lwd=lwd, col=Fit.palette)
         }
@@ -276,9 +277,6 @@ polar.ssanova <- function(data, data.cat='word', palate=NULL, scale=1, origin.me
     if (sum(!names(data)%in%c('token','X','Y'))==1 & !data.cat%in%names(data)){
         data.cat <- names(data)[!names(data)%in%c('token','X','Y')]
         warning(paste('Using column \"',data.cat,'" to group the data.\nTo avoid this warning, use "polar.ssanova(data, \'',data.cat,'\')"',sep=''))
-    }
-    if (flip==TRUE){
-        data$Y <- -data$Y
     }
     data.scaled <- us.rescale(data, scale)
     if (cartesian.only){
