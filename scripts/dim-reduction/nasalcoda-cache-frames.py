@@ -1,0 +1,200 @@
+import argparse
+import os, re, sys, glob, shutil
+from ultratils.rawreader import RawReader
+import pandas as pd
+from hashlib import sha1
+from collections import OrderedDict
+import audiolabel
+import numpy as np
+from operator import itemgetter
+from ultramisc.utils.ebutils import read_echob_metadata
+
+''' 
+Script to cache vowel and nasal data of interest in Mandarin Chinese. Assumes
+TextGrid annotations with phone set used in Montreal Forced Aligner for its
+pre-trained Mandarin Chinese acoustic model.
+
+Lists of target segments and/or can be input to selectively extract data. If
+either list is omitted, no restrictions are 
+
+Usage: python nasalcoda-cache-frames.py [expdir] [--flop -f]
+  expdir: directory containing all ultrasound acquisitions for a subject
+  --flop: horizontally mirror the data (if probe was used backwards)
+'''
+
+def read_stimfile(stimfile):
+    with open(stimfile, "r") as stfile:
+        stim = stfile.read().rstrip('\n').upper()
+    return stim
+
+
+# read in command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("expdir", 
+                    help="Experiment directory containing \
+                    acquisitions in flat structure"
+                    )
+parser.add_argument("words",
+					help="Plaintext list of target words to be extracted"
+					)
+parser.add_argument("segments",
+					help="Plaintext list of target segments to be extracted"
+					)
+parser.add_argument("-f", 
+                    "--flop", 
+                    help="Horizontally flip the data", 
+                    action="store_true"
+                    )
+args = parser.parse_args()
+
+# check for appropriate directory
+try:
+    expdir = args.expdir
+except IndexError:
+    print("\tDirectory provided doesn't exist")
+    ArgumentParser.print_usage
+    ArgumentParser.print_help
+    sys.exit(2)
+
+frames_out = os.path.join(expdir,"frames.npy")
+metadata_out = os.path.join(expdir,"frames_metadata.pickle")
+
+# glob expression: locates .raw files in subdirs
+rawfile_glob_exp = os.path.join(expdir,"*","*.raw")
+
+# create regular expressions for target words and segments
+# TODO: default to match ^(?!sil|sp).* for phones
+# TODO: default to match "not nothing" for words 
+with open(args.words, 'r') as mydict:
+    wrds = [line.strip().split()[0].lower() for line in mydict.readlines()]
+with open(args.segments,'r') as mysegm:
+    segs = [line.strip().split()[0] for line in mysegm.readlines()]
+    
+# make a more generally useful regular expression for segments
+# TODO set these to "any alphanumeric label which isn't sp or sil" if args
+# aren't provided
+word_regexp = re.compile("^({})$".format('|'.join(wrds)))
+seg_regexp = re.compile("^({})$".format('|'.join(segs)))
+
+# empty data collection objects
+data = None
+recs = []
+
+# loop through available .raw files
+for rf in glob.glob(rawfile_glob_exp):
+    parent = os.path.dirname(rf)
+    acq = os.path.split(parent)[1]
+    #print(acq)
+    stimfile = os.path.join(parent,"stim.txt")
+    stim = read_stimfile(stimfile)
+    #print(stim)
+    if stim == "bolus" or stim == "practice":
+        continue
+    wav = os.path.join(parent,str(acq + ".ch1.wav"))
+    tg = os.path.join(parent,str(acq + ".ch1.TextGrid"))
+    sync = os.path.join(parent,str(acq + '.sync.txt'))
+    sync_tg = os.path.join(parent,str(acq + ".sync.TextGrid"))
+    idx_txt = os.path.join(parent,str(acq + ".idx.txt"))
+    
+    # instantiate RawReader, which extracts ultrasound data from .raw files
+    if data is None:
+        try:
+            nscanlines, npoints, junk = read_echob_metadata(rf)
+        except ValueError: 
+            print("WARNING: no data in {}.img.txt".format(acq))
+            nscanlines = int(input("\tnscanlines (usually 64) ")) # TODO update values
+            npoints = int(input("\tnpoints (usually 1024) "))
+            junk = int(input("\tjunk (usually 78) "))
+    
+    rdr = RawReader(rf, nscanlines=nscanlines, npoints=npoints)
+    
+    # instantiate LabelManager objects for FA transcript and sync pulses
+    try: 
+        pm = audiolabel.LabelManager(from_file=tg, from_type="praat")
+    except FileNotFoundError:
+        print("No alignment TG in {}; skipping".format(acq))
+        continue
+        
+    try: 
+        sync_pm = audiolabel.LabelManager(from_file=sync_tg, from_type="praat")
+    except FileNotFoundError:
+        print("No sync TG in {}; skipping".format(acq))
+        continue
+    
+    for seg,match in pm.tier('phones').search(seg_regexp, return_match=True):
+        context = pm.tier('words').label_at(seg.center).text
+        if context in wrds:
+            # match only the last two segments, sequence VN
+            # if-else statement can be removed to make the script more general
+            # (will return all instance of target phones in target words)  
+            before = pm.tier('phones').prev(seg)
+            after = pm.tier('phones').next(seg)
+            two_after = pm.tier('phones').next(after)
+            if not (after.text == 'sp' or two_after.text == 'sp'):
+                pass
+            else:
+                #print("Found {} in {} in {}".format(seg.text,context,acq))
+                # separate suprasegmental numbers from seg.text
+                match = re.match(r"([a-z]+)([0-9]+)", seg.text, re.I)
+                if match:
+                    out_phone, out_sup = match.groups()
+                    #print(out_phone, out_sup)
+                else:
+                    out_phone = seg.text
+                    out_sup = "NA"
+                    #print(out_phone, out_sup)
+                    
+                # get midpoint time and find closest ultrasound frame in sync TG
+                midpoint = seg.center
+                diff_list = []
+                diff2_list = []
+                for frame in sync_pm.tier('pulse_idx'):
+                    diff = abs(frame.t1 - midpoint)
+                    diff_list.append(diff)
+                for frame in sync_pm.tier('raw_data_idx'):
+                    diff2 = abs(frame.t1 - midpoint)
+                    diff2_list.append(diff2)
+                mid_pulse_idx_num = min(enumerate(diff_list), key=itemgetter(1))[0] 
+                mid_raw_data_idx_num = min(enumerate(diff2_list), key=itemgetter(1))[0]
+                # get midpoint frame
+                raw = rdr.get_frame(mid_pulse_idx_num)
+                trim = raw[junk:,:]
+                
+                # if fan-conversion desired, uncomment:
+                # if args.flop:
+                    # trim = np.fliplr(trim)
+                
+                if data is None:
+                    data = np.expand_dims(trim, axis=0)
+                else:
+                    data = np.concatenate([data, np.expand_dims(trim, axis=0)])
+                    
+                recs.append(
+                    OrderedDict([
+                        ('speaker', expdir),
+                        ('timestamp', acq),
+                        ('time', midpoint),
+                        ('pulseidx', int(mid_pulse_idx_num)),
+                        ('width', nscanlines),
+                        ('height', npoints - junk),
+                        ('phone', out_phone),
+                        ('sup', out_sup),
+                        ('stim', stim),
+                        ('before', re.sub(r'[0-9]+', '', before.text)),
+                        ('after', re.sub(r'[0-9]+', '', after.text)),
+                        ('sha1', sha1(trim.ravel()).hexdigest()),
+                        ('sha1_dtype', trim.dtype)
+                    ])
+                )
+            
+md = pd.DataFrame.from_records(recs, columns=recs[0].keys())
+
+# make sure there is one metadata row for each image frame
+assert(len(md) == data.shape[0])
+
+# compare checksums
+assert(md.loc[0, 'sha1'] == sha1(data[0].ravel()).hexdigest())
+assert(md.loc[len(md)-1,'sha1'] == sha1(data[-1].ravel()).hexdigest())
+
+np.save(frames_out, data)
+md.to_pickle(metadata_out)
