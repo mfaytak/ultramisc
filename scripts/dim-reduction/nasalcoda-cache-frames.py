@@ -189,12 +189,10 @@ for rf in glob.glob(rawfile_glob_exp):
 			
 md = pd.DataFrame.from_records(recs, columns=recs[0].keys())
 
-# make sure there is one metadata row for each image frame
-assert(len(md) == data.shape[0])
-
-# compare checksums
-assert(md.loc[0, 'sha1'] == sha1(data[0].ravel()).hexdigest())
-assert(md.loc[len(md)-1,'sha1'] == sha1(data[-1].ravel()).hexdigest())
+# check that metadata matches data, frame-by-frame
+assert(len(pca_md) == pca_data.shape[0])
+for idx,row in pca_md.iterrows():
+	assert(row['sha1'] == sha1(pca_data[idx].ravel()).hexdigest())
 
 np.save(frames_out, data)
 md.to_pickle(metadata_out)
