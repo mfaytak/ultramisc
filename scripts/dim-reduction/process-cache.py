@@ -34,6 +34,11 @@ parser.add_argument("expdir",
 					help="Experiment directory containing all subjects'\
 						  caches and metadata in separate folders"
 					)
+parser.add_argument("-o", 
+					"--overwrite", 
+					help="Overwrites existing outputs if present.",
+					action="store_true"
+					)
 parser.add_argument("-f", 
 					"--flop", 
 					help="Horizontally flip the data", 
@@ -67,6 +72,14 @@ metadata_out = "frames_proc_metadata.pickle"
 # loop through 
 for root,directories,files in os.walk(expdir):
 	for d in directories:
+
+		if os.path.exists(os.path.join(root,d,frames_out)):
+			if args.overwrite:
+				print("Skipping {}, already processed".format(d))
+				pass
+			else:
+				continue
+
 		# folder name without any alphabetic characters
 		subject = re.sub("[^0-9]","",d)
 
@@ -107,9 +120,9 @@ for root,directories,files in os.walk(expdir):
 		savepath_mean = os.path.join(root,d,file_ending_mean)
 		plt.savefig(savepath_mean)
 		roi_upper = 600
-		roi_lower = 300
+		roi_lower = 200
 		roi_left = 20
-		roi_right = 100
+		roi_right = 50
 
 		# show user the masked data and ask for input on mask
 		while True:

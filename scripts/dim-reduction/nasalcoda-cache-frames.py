@@ -76,6 +76,9 @@ with open(args.segments,'r') as mysegm:
 word_regexp = re.compile("^({})$".format('|'.join(wrds)))
 seg_regexp = re.compile("^({})$".format('|'.join(segs)))
 
+# folder path for discards
+disc = os.path.join(expdir,"_discards")
+
 # empty data collection objects
 data = None
 recs = []
@@ -84,12 +87,11 @@ recs = []
 for rf in glob.glob(rawfile_glob_exp):
 	parent = os.path.dirname(rf)
 	acq = os.path.split(parent)[1]
-	#print(acq)
 	stimfile = os.path.join(parent,"stim.txt")
 	stim = read_stimfile(stimfile)
-	#print(stim)
-	if stim == "bolus" or stim == "practice":
+	if stim == "BOLUS" or stim == "PRACTICE":
 		continue
+	print("Now working on " + acq)
 	wav = os.path.join(parent,str(acq + ".ch1.wav"))
 	tg = os.path.join(parent,str(acq + ".ch1.TextGrid"))
 	sync = os.path.join(parent,str(acq + '.sync.txt'))
@@ -123,15 +125,28 @@ for rf in glob.glob(rawfile_glob_exp):
 	
 	for seg,match in pm.tier('phones').search(seg_regexp, return_match=True):
 		context = pm.tier('words').label_at(seg.center).text
-		if context in wrds:
+		if context in wrds:  
+			before = pm.tier('phones').prev(seg)
+
+			# assume default "sp" if there is no following label;
+			# i.e. empty final interval
+			after = pm.tier('phones').next(seg)
+			try:
+				after_label = after.text
+			except AttributeError: 
+				after_label = 'sp'
+			two_after = pm.tier('phones').next(after)
+			try:
+				two_after_label = two_after.text
+			except AttributeError: 
+				two_after_label = 'sp'
+
 			# match only the last two segments, sequence VN
 			# if-else statement can be removed to make the script more general
-			# (will return all instance of target phones in target words)  
-			before = pm.tier('phones').prev(seg)
-			after = pm.tier('phones').next(seg)
-			two_after = pm.tier('phones').next(after)
+			# (will return all instance of target phones in target words)
 			if not (after.text == 'sp' or two_after.text == 'sp'):
 				pass
+
 			else:
 				#print("Found {} in {} in {}".format(seg.text,context,acq))
 				# separate suprasegmental numbers from seg.text
@@ -154,10 +169,23 @@ for rf in glob.glob(rawfile_glob_exp):
 				for frame in sync_pm.tier('raw_data_idx'):
 					diff2 = abs(frame.t1 - midpoint)
 					diff2_list.append(diff2)
+				# TODO rewrite this chunk, temporary fix added
 				mid_pulse_idx_num = min(enumerate(diff_list), key=itemgetter(1))[0] 
 				mid_raw_data_idx_num = min(enumerate(diff2_list), key=itemgetter(1))[0]
-				# get midpoint frame
-				raw = rdr.get_frame(mid_pulse_idx_num)
+				
+				# get midpoint frame; discard if out of recorded range
+				try:
+					raw = rdr.get_frame(mid_pulse_idx_num - 1) # temporary fix
+				except IndexError: # thrown by RawReader.rdr if no frame at timepoint
+					# issue warning and move entire acq to discards folder
+					print("No frame available in {}, discarding".format(acq))
+					rdr.close()
+					if not os.path.isdir(disc):
+						os.mkdir(disc)
+					shutil.copytree(parent, os.path.join(disc,acq))
+					shutil.rmtree(parent)
+					continue
+
 				trim = raw[junk:,:]
 
 				# flop if needed
