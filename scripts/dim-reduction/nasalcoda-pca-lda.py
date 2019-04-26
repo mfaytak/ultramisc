@@ -13,7 +13,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument("directory", help="Experiment directory containing all subjects")
 parser.add_argument("--pca_dim", "-p", help="Number of principal components to retain")
 parser.add_argument("--lda_dim", "-l", help="Number of linear discriminants to train")
-# TODO add in args for n_pcs, n_lds
 args = parser.parse_args()
 
 try:
