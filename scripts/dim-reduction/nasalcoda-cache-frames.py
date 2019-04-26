@@ -144,7 +144,7 @@ for rf in glob.glob(rawfile_glob_exp):
 			# match only the last two segments, sequence VN
 			# if-else statement can be removed to make the script more general
 			# (will return all instance of target phones in target words)
-			if not (after.text == 'sp' or two_after.text == 'sp'):
+			if not (after_label == 'sp' or two_after_label.text == 'sp'):
 				pass
 
 			else:
