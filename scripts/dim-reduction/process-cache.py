@@ -5,7 +5,6 @@ from ultratils.pysonix.scanconvert import Converter
 from hashlib import sha1
 import matplotlib.pyplot as plt
 from imgphon.imgphon import ultrasound as us
-from ultramisc.utils import ebutils
 
 '''
 process-cache.py: a python command line utility for cleaning up
@@ -153,6 +152,7 @@ for root,directories,files in os.walk(expdir):
 				print("Typo, try again ...")
 
 		# some filtering parameters based on image size
+		conv_frame = conv.convert(pca_data[0])
 		adj_radius = int(conv_frame.shape[0]/50) # for median filter
 
 		# heads-up
@@ -174,8 +174,6 @@ for root,directories,files in os.walk(expdir):
 		print("Please check sample frame at {}!".format(savepath_sample))
 
 		# set up ultrasound frame array for PCA
-		# TODO preallocate the array, for speed
-		conv_frame = conv.convert(pca_data[0])
 		out_frames = np.empty([pca_data.shape[0]] + list(conv_frame.shape)) * np.nan
 		out_frames = out_frames.astype('uint8')
 		filt_hds = []
