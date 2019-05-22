@@ -25,3 +25,11 @@ def read_echob_metadata(rawfile):
     junk = npoints - mdict['Width'] # number of rows of junk data at outer edge of array
     
     return nscanlines, npoints, junk
+
+def read_stimfile(stimfile):
+    '''
+    Read plaintext stim.txt file; return stim as string.
+    '''
+    with open(stimfile, "r") as stfile:
+        stim = stfile.read().rstrip('\n')
+    return stim
