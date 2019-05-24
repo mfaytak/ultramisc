@@ -12,7 +12,7 @@ parser.add_argument("expdir",
 args = parser.parse_args()
 
 try:
-	expdir = args.directory
+	expdir = args.expdir
 except IndexError:
 	print("\tDirectory provided doesn't exist")
 	ArgumentParser.print_usage
@@ -24,6 +24,8 @@ expdir = args.expdir
 ann = input("Enter your initials: ")
 
 out_file = "annotations-out.txt"
+
+avi_glob_exp = os.path.join(expdir, "*", "*_slow.avi")
 
 # write header to file
 with open(out_file, "w") as out:
