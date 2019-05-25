@@ -29,7 +29,7 @@ avi_glob_exp = os.path.join(expdir, "*", "*_slow.avi")
 
 # write header to file
 with open(out_file, "w") as out:
-	out.write('\t'.join(["acq", "stim", "before", "after", "voi", "ann", "label"]))
+	out.write('\t'.join(["acq", "stim", "before", "after", "voi", "ann", "label"]) + '\n')
 
 # loop through available _slow.avi files
 for av in glob.glob(avi_glob_exp):
@@ -65,10 +65,10 @@ for av in glob.glob(avi_glob_exp):
         elif click == "Label":
             choice = easygui.buttonbox(title="Select the best label", choices=["up_flap", "down_flap", "low_tap", "high_tap"])
             with open(out_file, "a") as out:
-                out.write('\t'.join([basename, stim, before, after, voice, ann, choice]))
+                out.write('\t'.join([basename, stim, before, after, voice, ann, choice]) + '\n')
             break
         else:
             choice = "NA"
             with open(out_file, "a") as out:
-                out.write('\t'.join([basename, stim, before, after, voice, ann, choice]))
+                out.write('\t'.join([basename, stim, before, after, voice, ann, choice]) + '\n')
             break 
