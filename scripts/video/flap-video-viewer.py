@@ -23,7 +23,7 @@ expdir = args.expdir
 
 ann = input("Enter your initials: ")
 
-out_file = "annotations-out.txt"
+out_file = "annotations-{}.txt".format(expdir)
 
 avi_glob_exp = os.path.join(expdir, "*", "*_slow.avi")
 
