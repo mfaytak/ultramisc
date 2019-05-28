@@ -151,6 +151,12 @@ for rf in glob.glob(rawfile_glob_exp):
 			start_flap_idx = min(enumerate(diff_start_flap), key=itemgetter(1))[0] - 1
 			end_flap_idx = min(enumerate(diff_end_flap), key=itemgetter(1))[0] - 1
 			
+			# make sure there are at least 20 frames after end of flap
+			# credit: Jennifer Kuo
+			if (end_idx - end_flap_idx) < 20: 
+				end_idx = 20 + end_flap_idx
+
+			# get set of indices for timing of flap
 			is_flap = list(range(start_flap_idx, end_flap_idx))
 			is_flap = [ix - start_idx for ix in is_flap]
 			

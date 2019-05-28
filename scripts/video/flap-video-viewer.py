@@ -3,12 +3,28 @@ from ultramisc.utils.ebutils import read_stimfile
 import time
 import argparse
 
+def play_from_gui(av):
+    ''' 
+    Plays a video file using python VLC bindings, then closes
+      the video player.
+    '''
+    player = vlc.MediaPlayer(av)
+    player.play()
+    time.sleep(1) # sleep one second while collecting dur
+    dur = player.get_length() / 1000 # convert ms to s
+    time.sleep(dur - 1) # take out length of the second above
+    player.stop()
+    # returns None
+
 # read in arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("expdir", 
 					help="Experiment directory containing all subjects'\
 						  caches and metadata in separate folders"
 					)
+parser.add_argument("outfile",
+                    help="Text file to output annotation data to"
+                    )
 args = parser.parse_args()
 
 try:
@@ -20,11 +36,9 @@ except IndexError:
 	sys.exit(2)
 
 expdir = args.expdir
+out_file = args.outfile
 
 ann = input("Enter your initials: ")
-
-out_file = "annotations-{}.txt".format(expdir)
-
 avi_glob_exp = os.path.join(expdir, "*", "*_slow.avi")
 
 # write header to file
@@ -48,20 +62,14 @@ for av in glob.glob(avi_glob_exp):
     basename = os.path.split(parent)[1]
     av_fast = os.path.join(parent,str(basename + "_fast.avi"))
 
-        # TODO add name to player
+    # TODO add name to player
     while True:
         click = easygui.buttonbox(title="Playing {}".format(av),msg="Press Play to start",choices=["Play", "Play fast", "Label"])
         #print(choice)
         if click == "Play":
-            player = vlc.MediaPlayer(av)
-            player.play()
-            time.sleep(5)
-            player.stop()
+            play_from_gui(av)
         elif click == "Play fast":
-            player = vlc.MediaPlayer(av_fast)
-            player.play()
-            time.sleep(2)
-            player.stop()
+            play_from_gui(av_fast)
         elif click == "Label":
             choice = easygui.buttonbox(title="Select the best label", choices=["up_flap", "down_flap", "low_tap", "high_tap"])
             with open(out_file, "a") as out:
