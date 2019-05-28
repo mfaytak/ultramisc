@@ -153,18 +153,17 @@ for rf in glob.glob(rawfile_glob_exp):
 			
 			# make sure there are at least 20 frames after end of flap
 			# credit: Jennifer Kuo
-			if (end_idx - end_flap_idx) < 20: 
-				end_idx = 20 + end_flap_idx
+			if (end_idx - end_flap_idx) < 15: 
+				end_idx = 15 + end_flap_idx
 
 			# get set of indices for timing of flap
 			is_flap = list(range(start_flap_idx, end_flap_idx))
 			is_flap = [ix - start_idx for ix in is_flap]
 			
+			# get frames using RawReader's reader object
 			target_frames = rdr.data[start_idx:end_idx]
 			
 			for idx,fr in enumerate(target_frames):
-				# extract frame using RawReader
-				#unconv_frame = rdr.get_frame(idx)
 
 				# trim junk pixels off of top
 				trimmed_frame = fr[junk:,:]
@@ -197,21 +196,27 @@ for rf in glob.glob(rawfile_glob_exp):
 
 			out_fh = basename + '_slow.avi'
 			out_path = os.path.join(parent, out_fh)
-			avi_args = ['ffmpeg', '-y',
+			avi_args = ['ffmpeg', 
+							'-loglevel', 'panic',
+							'-y',
 							'-framerate', '4', # values that work here include 4, 12.5, and 25
 							'-i', frame_exp,
 							#'-r', str(framerate),
 							'-vcodec', 'huffyuv',
+							'-vf', 'scale=iw/2:ih/2',
 							out_path]
 			subprocess.check_call(avi_args)
 			
 			out_fh_fast = basename + '_fast.avi'
 			out_path_fast = os.path.join(parent, out_fh_fast)
-			avi_args_fast = ['ffmpeg', '-y',
+			avi_args_fast = ['ffmpeg', 
+							'-loglevel', 'panic',
+							'-y',
 							'-framerate', '12.5', 
 							'-i', frame_exp,
 							#'-r', str(framerate),
 							'-vcodec', 'huffyuv',
+							'-vf', 'scale=iw/2:ih/2',
 							out_path_fast]
 			subprocess.check_call(avi_args_fast)
 
