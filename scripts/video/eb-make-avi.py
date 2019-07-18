@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # eb-extract-all.py: extract all frames as BMPs from a raw file
+# WARNING: largely superseded by code in ./flap-video-writer.py
 # usage: python eb-extract-all.py expdir (-f / --flop)
 
 # TODO this shares a lot of structure in common with eb-extract-frames.py

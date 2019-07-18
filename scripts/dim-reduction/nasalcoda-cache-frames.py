@@ -17,8 +17,10 @@ pre-trained Mandarin Chinese acoustic model.
 Lists of target segments and/or can be input to selectively extract data. If
 either list is omitted, no restrictions are 
 
-Usage: python nasalcoda-cache-frames.py [expdir] [--flop -f]
+Usage: python nasalcoda-cache-frames.py [expdir] [words] [segments] [--flop -f]
   expdir: directory containing all ultrasound acquisitions for a subject
+  words: list of target words, plaintext
+  segments: list of target segments, plaintext (including suprasegmentals)
   --flop: horizontally mirror the data (if probe was used backwards)
 '''
 
@@ -26,7 +28,6 @@ def read_stimfile(stimfile):
 	with open(stimfile, "r") as stfile:
 		stim = stfile.read().rstrip('\n').upper()
 	return stim
-
 
 # read in command line arguments
 parser = argparse.ArgumentParser()
