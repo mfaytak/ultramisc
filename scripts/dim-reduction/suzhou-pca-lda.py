@@ -1,13 +1,20 @@
-import os, sys, glob, re
+'''
+suzhou-pca-lda-1ld: PCA-LDA method, Suzhou project, basic (2LD) model.
+'''
+
 import argparse
+import glob
+import matplotlib.pyplot as plt
 import numpy as np 
+import os
 import pandas as pd
+import re
+import sys
+
 from hashlib import sha1
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-import matplotlib.pyplot as plt
 
-# TODO make sure this is assigning a label to everything
 def coart_class(row):
 	# figure out how to make training words just be "training"
 	if row['pron'] in test_no_coart_words:

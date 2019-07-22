@@ -5,13 +5,13 @@
 
 # TODO test both options (delete, not delete)
 
-import os, sys, glob, shutil
 import argparse
+import glob
+import os
+import shutil
+import sys
 
-def read_stimfile(stimfile):
-	with open(stimfile, "r") as stfile:
-		stim = stfile.read().rstrip('\n')
-	return stim
+from ultramisc.ebutils import read_stimfile
 
 # parse argument(s)
 parser = argparse.ArgumentParser()

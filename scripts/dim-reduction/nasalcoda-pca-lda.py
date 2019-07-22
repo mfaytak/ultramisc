@@ -1,12 +1,20 @@
-import os, sys, glob, re
+'''
+nasalcoda-pca-lda: PCA-LDA pipeline as used in nasal coda project (Liu S., Faytak).
+'''
+
 import argparse
+import glob
+import matplotlib.pyplot as plt
 import numpy as np 
+import os
 import pandas as pd
+import re
+import sys
+
 from hashlib import sha1
+from imgphon.imgphon.ultrasound import reconstruct_frame
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-import matplotlib.pyplot as plt
-from imgphon.imgphon.ultrasound import reconstruct_frame
 
 # read in arguments
 parser = argparse.ArgumentParser()

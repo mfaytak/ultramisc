@@ -3,14 +3,15 @@
 # subsetter.py: pick out a subset of acquisitions in an experiment directory.
 # usage: python subsetter.py expdir
 
-import os, sys, glob, shutil
 import argparse
+import glob
+import os
+import shutil
+import sys 
+
 from ultratils.exp import Exp 
 
-def read_stimfile(stimfile):
-	with open(stimfile, "r") as stfile:
-		stim = stfile.read().rstrip('\n')
-	return stim
+from ultramisc.ebutils import read_stimfile
 
 # parse argument(s)
 parser = argparse.ArgumentParser()

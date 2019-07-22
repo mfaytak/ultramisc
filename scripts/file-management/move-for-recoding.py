@@ -8,9 +8,9 @@
 ## and CODEFILE is the csv file with all the coding results.
 
 import argparse
-import shutil
-import pandas as pd
 import os
+import pandas as pd
+import shutil
 
 # read in arguments
 parser = argparse.ArgumentParser()

@@ -1,14 +1,24 @@
-import os, sys, glob, re
+'''
+suzhou-process-cache: frame cache processing method as used in Suzhou project.
+  NOTE: largely superceded by general script, ./process-cache.py, plus
+  the ./suzhou-pca-lda* scripts run afterwards.
+'''
+
 import argparse
-import numpy as np 
-import pandas as pd
-from ultratils.pysonix.scanconvert import Converter
-from hashlib import sha1
-from sklearn.decomposition import PCA
-from scipy.ndimage import median_filter
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+import glob
 import matplotlib.pyplot as plt
+import numpy as np 
+import os
+import pandas as pd
+import re
+import sys
+
+from hashlib import sha1
 from imgphon.imgphon import ultrasound as us
+from scipy.ndimage import median_filter
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from ultratils.pysonix.scanconvert import Converter
 
 yes_no = ["Y", "N"]
 

@@ -1,44 +1,22 @@
-#!/usr/bin/env python
-
 # eb-extract-all.py: extract all frames as BMPs from a raw file
 # WARNING: largely superseded by code in ./flap-video-writer.py
 # usage: python eb-extract-all.py expdir (-f / --flop)
 
-# TODO this shares a lot of structure in common with eb-extract-frames.py
-# pull out functions?
-
-import os, re, glob, shutil
-from PIL import Image
-import numpy as np
 import argparse
 import audiolabel
-from operator import itemgetter
-from ultratils.rawreader import RawReader
-from ultratils.pysonix.scanconvert import Converter
+import glob
+import numpy as np
+import os
+import re
+import shutil
 import subprocess
 
-def read_stimfile(stimfile):
-    with open(stimfile, "r") as stfile:
-        stim = stfile.read().rstrip('\n')
-    return stim
+from operator import itemgetter
+from PIL import Image
+from ultratils.rawreader import RawReader
+from ultratils.pysonix.scanconvert import Converter
 
-def read_echob_metadata(rawfile):
-    '''
-    Gather information about a .raw file from its .img.txt file. 
-    '''
-    mfile = os.path.splitext(rawfile)[0] + ".img.txt"
-    mdict = {}
-    with open(mfile, 'r') as mf:
-        k = mf.readline().strip().split("\t")
-        v = mf.readline().strip().split("\t")
-        for fld,val in zip(k, v):
-            mdict[fld] = int(val)
-    
-    nscanlines = mdict['Height']
-    npoints = mdict['Pitch']
-    junk = npoints - mdict['Width'] # number of rows of junk data at outer edge of array
-    
-    return nscanlines, npoints, junk
+from ultramisc.ebutils import read_echob_metadata, read_stimfile
 
 class Header(object):
     def __init__(self):

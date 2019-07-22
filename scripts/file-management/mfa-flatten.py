@@ -4,9 +4,10 @@
 # Usage: python mfa-flatten.py [expdir]
 #   expdir - top-level directory for one subject, as output by EchoB/Micro.
 
-import os, glob
-import shutil
 import argparse
+import glob
+import os
+import shutil
 
 # parse argument(s)
 parser = argparse.ArgumentParser()

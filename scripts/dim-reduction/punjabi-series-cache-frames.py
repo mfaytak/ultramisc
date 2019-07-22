@@ -1,22 +1,27 @@
 #!/usr/bin/env python
 
 """
-TODO docstring
+punjabi-series-cache-frames: time series frame caching method used in Punjabi dental/retroflex project (Kochetov, Faytak, Nara)
 """
 
+# TODO: actually using?
 from __future__ import absolute_import, division, print_function
 
-import os, sys, glob, re
-from PIL import Image
-import struct
 import argparse
-from operator import itemgetter
+import glob
 import numpy as np
-from scipy import ndimage
-import subprocess
+import os
 import pandas as pd
-from hashlib import sha1
+import re
+import struct
+import subprocess
+import sys
+
 from collections import OrderedDict
+from hashlib import sha1
+from operator import itemgetter
+from PIL import Image
+from scipy import ndimage
 
 # read in args
 parser = argparse.ArgumentParser()

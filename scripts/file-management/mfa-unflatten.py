@@ -5,9 +5,9 @@
 #   Assumes each .TextGrid has a matching directory name.
 # Usage: python mfa-unflatten.py [tgdir] [expdir]
 
+import argparse
 import os
 import shutil
-import argparse
 
 # parse argument(s)
 parser = argparse.ArgumentParser()

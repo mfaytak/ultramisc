@@ -1,21 +1,27 @@
 #!/usr/bin/env python
 
-# eb-extract-frames.py: extract frame BMPs for contour extraction
-# usage: python eb-extract-frames.py expdir (-f / --flop)
+'''
+suzhou-cache-frames: frame caching method as used in Suzhou iz/i project.
+'''
 
-
-import os, re, sys, glob, shutil
-from PIL import Image
-import numpy as np
 import argparse
-from operator import itemgetter
-import pandas as pd
-from hashlib import sha1
-from collections import OrderedDict
 import audiolabel
+import glob
 import imgphon as iph
+import os
+import numpy as np
+import pandas as pd
+import re
+import shutil
+import sys
+
+from collections import OrderedDict
+from hashlib import sha1
+from operator import itemgetter
+from PIL import Image
 from ultratils.rawreader import RawReader
-#from ultratils.pysonix.scanconvert import Converter
+
+from ultramisc.ebutils import read_echob_metadata, read_stimfile
 
 def read_stimfile(stimfile):
 	with open(stimfile, "r") as stfile:

@@ -1,7 +1,13 @@
-import vlc, easygui, glob, os
-from ultramisc.utils.ebutils import read_stimfile
-import time
+#!/usr/bin/env python
+
 import argparse
+import easygui
+import glob
+import os
+import time
+import vlc
+
+from ultramisc.ebutils import read_stimfile
 
 def play_from_gui(av):
 	''' 

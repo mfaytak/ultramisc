@@ -1,14 +1,20 @@
-import os, sys, glob, re
+'''
+punjabi-series-pca-lda: PCA-LDA pipeline as used for Punjabi time series project (Kochetov, Faytak, Nara)
+'''
+
 import argparse
+import glob
+import matplotlib.pyplot as plt
 import numpy as np 
+import os
 import pandas as pd
-# from ultratils.pysonix.scanconvert import Converter # not needed for Toronto data
+import re
+import sys
+
 from hashlib import sha1
+from scipy.ndimage import median_filter
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-from scipy.ndimage import median_filter
-import matplotlib.pyplot as plt
-# % matplotlib inline
 
 # read in args
 parser = argparse.ArgumentParser()

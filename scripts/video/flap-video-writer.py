@@ -1,13 +1,21 @@
-from ultramisc.utils.ebutils import read_echob_metadata, read_stimfile
+'''
+flap-video-writer: convert designated sequences of ultrasound frames into .AVI movies.
+'''
+
+import argparse
+import audiolabel
+import glob
+import imgphon.imgphon.ultrasound as us # TODO reorganize
+import numpy as np
+import os
+import subprocess
+
+from operator import itemgetter
+from PIL import Image # check if configured on VM
 from ultratils.rawreader import RawReader
 from ultratils.pysonix.scanconvert import Converter
-import imgphon.imgphon.ultrasound as us
-from PIL import Image # check if configured on VM
-import audiolabel # need to download too - GH
-import os, glob, subprocess
-import numpy as np
-from operator import itemgetter
-import argparse
+
+from ultramisc.ebutils import read_echob_metadata, read_stimfile
 
 # read in arguments
 parser = argparse.ArgumentParser()

@@ -19,8 +19,10 @@ Requirements for a well-formatted output:
 # Authors: Matthew Faytak (faytak@ucla.edu) Copyright (c) 2015
 # Last modified 11-2018
 
-import os, sys, re, glob
 import audiolabel
+import glob
+import os, sys, re
+
 from csv import reader
 from operator import itemgetter
 

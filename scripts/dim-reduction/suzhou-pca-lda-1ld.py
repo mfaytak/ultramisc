@@ -1,11 +1,19 @@
-import os, sys, glob, re
+'''
+suzhou-pca-lda-1ld: PCA-LDA method, Suzhou project, simple (1LD) model.
+'''
+
 import argparse
+import glob
+import matplotlib.pyplot as plt
 import numpy as np 
+import os
 import pandas as pd
+import re
+import sys
+
 from hashlib import sha1
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-import matplotlib.pyplot as plt
 
 def coart_class(row):
 	# figure out how to make training words just be "training"

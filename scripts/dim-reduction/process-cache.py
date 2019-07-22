@@ -1,11 +1,3 @@
-import os, sys, glob, re, argparse
-import numpy as np 
-import pandas as pd
-from ultratils.pysonix.scanconvert import Converter
-from hashlib import sha1
-import matplotlib.pyplot as plt
-from imgphon.imgphon import ultrasound as us
-
 '''
 process-cache.py: a python command line utility for cleaning up
   ultrasound frame data stored in a .npy cache. A metadata
@@ -26,6 +18,19 @@ Usage: python process-cache.py [expdir] [--flop -f]
   --flop: If used, horizontally mirror the data (to correct for 
   		  ultrasound probe being oriented backwards).
 '''
+
+import argparse
+import glob
+import matplotlib.pyplot as plt
+import numpy as np 
+import os
+import pandas as pd
+import re
+import sys
+
+from hashlib import sha1
+from imgphon.imgphon import ultrasound as us
+from ultratils.pysonix.scanconvert import Converter
 
 # read in arguments from command line
 parser = argparse.ArgumentParser()

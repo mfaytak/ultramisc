@@ -1,9 +1,12 @@
+'''
+replace-ts-word: find and replace words in transcript files.
+  Intended use is changing spellings to get along with forced alignment
+  dictionaries.
+'''
+
 import os, sys, glob
 import argparse
 
-# this is a function that reads a transcript file
-# it returns the contents of the file as a list
-# (where each list item is a part of the transcript separated by spaces)
 def read_transcript(my_ts_file):
 	with open(my_ts_file, "r") as tsfile:
 		sentence = tsfile.read().rstrip('\n')

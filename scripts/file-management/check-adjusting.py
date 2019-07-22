@@ -6,10 +6,12 @@
 
 ##Jennifer Kuo, July 2019
 
-import audiolabel # need to download from github
-import os, glob, re
 import argparse
+import audiolabel
+import glob
+import os
 import numpy as np
+import re
 
 # read in arguments
 parser = argparse.ArgumentParser()

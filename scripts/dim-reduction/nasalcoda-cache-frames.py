@@ -1,14 +1,3 @@
-import argparse
-import os, re, sys, glob, shutil
-from ultratils.rawreader import RawReader
-import pandas as pd
-from hashlib import sha1
-from collections import OrderedDict
-import audiolabel
-import numpy as np
-from operator import itemgetter
-from ultramisc.utils.ebutils import read_echob_metadata
-
 ''' 
 Script to cache vowel and nasal data of interest in Mandarin Chinese. Assumes
 TextGrid annotations with phone set used in Montreal Forced Aligner for its
@@ -23,6 +12,23 @@ Usage: python nasalcoda-cache-frames.py [expdir] [words] [segments] [--flop -f]
   segments: list of target segments, plaintext (including suprasegmentals)
   --flop: horizontally mirror the data (if probe was used backwards)
 '''
+
+import argparse
+import audiolabel
+import glob
+import numpy as np
+import os
+import pandas as pd
+import re
+import shutil
+import sys
+
+from collections import OrderedDict
+from hashlib import sha1
+from operator import itemgetter
+from ultratils.rawreader import RawReader
+
+from ultramisc.ebutils import read_echob_metadata, read_stimfile
 
 def read_stimfile(stimfile):
 	with open(stimfile, "r") as stfile:

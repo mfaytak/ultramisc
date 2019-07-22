@@ -1,14 +1,19 @@
-import os, sys, glob, re
+'''
+punjabi-series-process-cache.py: process cache as done in Kochetov/Faytak/Nara project.
+'''
+
 import argparse
+import glob
+import matplotlib.pyplot as plt
 import numpy as np 
 import pandas as pd
-#from ultratils.pysonix.scanconvert import Converter
+import os
+import re
+import sys
+
 from hashlib import sha1
-#from sklearn.decomposition import PCA
-from scipy.ndimage import median_filter
-#from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-import matplotlib.pyplot as plt
 from imgphon.imgphon import ultrasound as us
+from scipy.ndimage import median_filter
 
 # read in args
 parser = argparse.ArgumentParser()
