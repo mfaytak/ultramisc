@@ -12,7 +12,7 @@ import re
 import sys
 
 from hashlib import sha1
-from imgphon.imgphon.ultrasound import reconstruct_frame
+from imgphon.ultrasound import reconstruct_frame
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 

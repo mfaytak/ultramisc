@@ -14,7 +14,7 @@ import re
 import sys
 
 from hashlib import sha1
-from imgphon.imgphon import ultrasound as us
+from imgphon import ultrasound as us
 from scipy.ndimage import median_filter
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA

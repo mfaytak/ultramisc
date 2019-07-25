@@ -73,7 +73,7 @@ for av in glob.glob(avi_glob_exp):
 		click = easygui.buttonbox(title="Now playing {}".format(basename),
 								  msg='\n'.join( 
 										["Press Play to view {} in {}".format(basename, expdir),
-										#  "Word is {}".format(stim) # TODO: implement?
+										  "Word is {}".format(stim) # TODO: implement?
 										]),
 								  choices=["Play", "Play fast", "Label"]
 								  )

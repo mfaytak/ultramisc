@@ -29,7 +29,7 @@ import re
 import sys
 
 from hashlib import sha1
-from imgphon.imgphon import ultrasound as us
+from imgphon import ultrasound as us
 from ultratils.pysonix.scanconvert import Converter
 
 # read in arguments from command line

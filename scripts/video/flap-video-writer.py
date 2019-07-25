@@ -5,7 +5,7 @@ flap-video-writer: convert designated sequences of ultrasound frames into .AVI m
 import argparse
 import audiolabel
 import glob
-import imgphon.imgphon.ultrasound as us # TODO reorganize
+import imgphon.ultrasound as us # TODO reorganize
 import numpy as np
 import os
 import subprocess
@@ -117,7 +117,7 @@ for rf in glob.glob(rawfile_glob_exp):
 				continue
 			if ph.t2 > word_t2:
 				continue
-			if ph.text.upper() not in ["T", "D"]:
+			if ph.text.upper() not in ["TX", "DX"]:
 				continue
 			# TODO check if no flap found, issue warning
 			before = pm.tier('phones').prev(ph)

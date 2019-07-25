@@ -12,7 +12,7 @@ import re
 import sys
 
 from hashlib import sha1
-from imgphon.imgphon import ultrasound as us
+from imgphon import ultrasound as us
 from scipy.ndimage import median_filter
 
 # read in args
