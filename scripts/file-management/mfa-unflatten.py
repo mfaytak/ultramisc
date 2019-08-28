@@ -32,14 +32,16 @@ expdir = args.expdir
 
 for dirs,subdirs,textgrids in os.walk(tgdir):
     for tg in textgrids:
-        tgh = os.path.join(os.path.abspath(dirs),tg)
-        if tg == "unaligned.txt":
+        if not tg.endswith(".ch1.TextGrid"):
+            continue
+        elif tg == "unaligned.txt":
             with open(tgh, "r") as un:
                 print("WARNING: SOME SOUND FILES NOT ALIGNED")
                 lines = [line.rstrip('\n') for line in un]
                 for line in lines:
                     print(line)
             continue
+        tgh = os.path.join(os.path.abspath(dirs),tg)
         timestamp = tg.replace(".ch1.TextGrid","")
         dest = os.path.join(expdir,timestamp)
         shutil.copy(tgh, dest)
