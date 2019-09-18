@@ -21,6 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("directory", help="Experiment directory containing all subjects")
 parser.add_argument("--pca_dim", "-p", help="Number of principal components to retain")
 parser.add_argument("--lda_dim", "-l", help="Number of linear discriminants to train")
+parser.add_argument("--flop", "-f", help="Horizontally flip the data", action="store_true")
 args = parser.parse_args()
 
 try:
@@ -54,12 +55,19 @@ for root, dirs, files in os.walk(expdir):
 		nas_mask = md['phone'].isin(['n','ng'])
 		pca_data = data[nas_mask]
 		pca_md = md[nas_mask]
+
+		if args.flop:
+			 # flips all frames on their second axis, i.e. front-back
+			pca_data = np.flip(pca_data, 2)
+
+		# reshape data to prep for PCA
 		image_shape = pca_data[0].shape
 		frames_reshaped = pca_data.reshape([
 				pca_data.shape[0],
 				pca_data.shape[1] * pca_data.shape[2]
 				])
 		
+		# carry out PCA
 		pca = PCA(n_components=n_components) 
 		pca.fit(frames_reshaped)
 		total_var_exp = sum(pca.explained_variance_ratio_)
@@ -103,6 +111,8 @@ for root, dirs, files in os.walk(expdir):
 		eng_mask = (pca_md['phone'].isin(['ng']) & pca_md['before'].isin(['e']))
 		an_mask = (pca_md['phone'].isin(['n']) & pca_md['before'].isin(['a']))
 		ang_mask = (pca_md['phone'].isin(['ng']) & pca_md['before'].isin(['a']))
+		uan_mask = (pca_md['phone'].isin(['n']) & pca_md['before'].isin(['ua']))
+		uang_mask = (pca_md['phone'].isin(['ng']) & pca_md['before'].isin(['ua']))
 
 		# make dict of masks and strings for plot labels/output titles
 		output_dict = {"in": in_mask,
@@ -110,16 +120,41 @@ for root, dirs, files in os.walk(expdir):
 					  "en": en_mask,
 					  "eng": eng_mask,
 					   "an": an_mask,
-					  "ang": ang_mask}
+					  "ang": ang_mask,
+					  "uan": uan_mask,
+					  "uang": uang_mask}
+
+		SMALL_SIZE = 8
+		MEDIUM_SIZE = 10
+		BIGGER_SIZE = 12
 
 		for label in output_dict:
 			idx_list = pca_md.index[output_dict[label]].tolist() # subset pca_md by each mask
 			values = pca_out[idx_list]
-			plt.title("Mean reconstructed nasal for {:}, Subj {:}".format(label.upper(), subject))
-			plt.imshow(reconstruct_frame(vectors, values, pca.n_components, image_shape), cmap="Greys_r")
+
+			plt.rcParams['font.sans-serif'] = "Noto Sans UI"
+			#plt.rcParams['font.family'] = "sans-serif"
+
+			SMALL_SIZE = 8
+			MEDIUM_SIZE = 10
+			#BIGGER_SIZE = 14
+
+			plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
+			plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+			plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+			plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+			plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
+
+			plt.title("Reconstructed {:}, speaker {:}".format(label.upper(), subject))
+			# TODO need to get max/min values out of reconstruct_frame somehow
+			plt.imshow(reconstruct_frame(vectors, values, pca.n_components, image_shape)/255., cmap="Blues_r")
+			clb = plt.colorbar(extend='min', shrink=0.55)
+			clb.ax.set_title('Pixel\n value')
+			plt.clim(0)
 			file_ending = "subj{:}-{:}-recon.pdf".format(subject, label)
 			savepath = os.path.join(root,d,file_ending)
 			plt.savefig(savepath)
+			plt.close("all")
 		
 		# now LDA
 		training_list = ["n", "ng"]
@@ -158,4 +193,8 @@ for root, dirs, files in os.walk(expdir):
 			# labs = np.array(training_md.phone) # expand dims?
 		print(subject + ": accuracy = " + str(train_lda.score(training_data, labs)))
 		
-		# TODO reconstruct typical frame for LDA bins
+		# TODO output total token counts and token counts for each bin
+		print("Total nasal frames analyzed: {:} ".format(pca_data.shape[0]))
+		for label in output_dict:
+			count = sum(output_dict[label]) # add up TRUEs in the masks
+			print("Total frames for {:}, subj {:}: {:}".format(label.upper(), subject, count))

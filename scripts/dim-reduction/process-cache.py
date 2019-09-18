@@ -43,11 +43,6 @@ parser.add_argument("-o",
 					help="Overwrites existing outputs if present.",
 					action="store_true"
 					)
-parser.add_argument("-f", 
-					"--flop", 
-					help="Horizontally flip the data", 
-					action="store_true"
-					)
 args = parser.parse_args()
 
 # create some objects we will need to instantiate the converter
@@ -178,6 +173,14 @@ for root,directories,files in os.walk(expdir):
 		plt.savefig(savepath_sample)
 		print("Please check sample frame at {}!".format(savepath_sample))
 
+		# save a RoI file for later reference
+		print("RoI of upper {:} lower {:}, left {:} right {:} used".format(roi_upper,roi_lower,roi_left,roi_right))
+		file_ending_roi = "subj{:}_roi.txt".format(subject)
+		savepath_roi = os.path.join(root,d,file_ending_roi)
+		with open(savepath_roi,"w") as out:
+			out.write('\t'.join(['upper', 'lower', 'left', 'right']) + '\n')
+			out.write('\t'.join([str(roi_upper), str(roi_lower), str(roi_left), str(roi_right)]))
+
 		# set up ultrasound frame array for PCA
 		out_frames = np.empty([pca_data.shape[0]] + list(conv_frame.shape)) * np.nan
 		out_frames = out_frames.astype('uint8')
@@ -187,6 +190,7 @@ for root,directories,files in os.walk(expdir):
 		for idx,frame in enumerate(pca_data):
 			masked = frame * mask # using mask defined above
 			sradd = us.srad(masked)
+			# TODO should remove outer flipud for consistent output
 			convd = np.flipud(conv.convert(np.flipud(sradd)))
 			clean = us.clean_frame(convd, median_radius=adj_radius)
 			# copying to out_frames casts to np.uint8; rescaling required
