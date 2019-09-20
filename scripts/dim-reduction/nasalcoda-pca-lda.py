@@ -147,7 +147,7 @@ for root, dirs, files in os.walk(expdir):
 
 			plt.title("Reconstructed {:}, speaker {:}".format(label.upper(), subject))
 			# TODO need to get max/min values out of reconstruct_frame somehow
-			plt.imshow(reconstruct_frame(vectors, values, pca.n_components, image_shape)/255., cmap="Blues_r")
+			plt.imshow(reconstruct_frame(vectors, values, pca.n_components, image_shape), cmap="Blues_r")
 			clb = plt.colorbar(extend='min', shrink=0.55)
 			clb.ax.set_title('Pixel\n value')
 			plt.clim(0)
@@ -187,14 +187,28 @@ for root, dirs, files in os.walk(expdir):
 		ld_md = pd.concat([subject_column, ld, cls, training_md], axis=1)
 		lda_savepath = os.path.join(root,d,"NC{:}_ldas_1ld.csv".format(subject))
 		ld_md.to_csv(lda_savepath, index=False)
-		
-		# print pct correct classification of training data
-		# TODO make this by "before" category
-			# labs = np.array(training_md.phone) # expand dims?
-		print(subject + ": accuracy = " + str(train_lda.score(training_data, labs)))
-		
+
 		# TODO output total token counts and token counts for each bin
-		print("Total nasal frames analyzed: {:} ".format(pca_data.shape[0]))
+		print("FRAME COUNT")
+		print("\t" + "Total nasal frames analyzed: {:} ".format(pca_data.shape[0]))
 		for label in output_dict:
 			count = sum(output_dict[label]) # add up TRUEs in the masks
-			print("Total frames for {:}, subj {:}: {:}".format(label.upper(), subject, count))
+			print("\t" + "Total frames for {:}, subj {:}: {:}".format(label.upper(), subject, count))
+
+		
+		# print pct correct classification of training data
+		print("LDA ACCURACY")
+		print("\t" + subject + ": overall correct = " + str(train_lda.score(training_data, labs)))
+
+		before_labels = list(np.unique(ld_md.before)) # [a, e, i, ua]
+		train_labels = list(np.unique(ld_md.phone))
+
+		for b in before_labels: # [a, e, i, ua]
+			set_by_before = ld_md.loc[ld_md.before == b]
+			for tr in train_labels: # [n, ng]
+				set_by_before_coda = set_by_before.loc[set_by_before.phone == tr]
+				total_count = set_by_before_coda.shape[0]
+				correct_subset = set_by_before_coda.loc[set_by_before_coda.cls == tr]
+				correct_count = correct_subset.shape[0]
+				prop_correct = correct_count/total_count
+				print('\t', b+tr, '\t proportion correct (as {})'.format(tr), prop_correct)
