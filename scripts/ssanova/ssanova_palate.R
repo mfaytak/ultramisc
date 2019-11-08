@@ -3,7 +3,7 @@
 # functions for SSANOVA comparisons of tongue traces in polar coordinates using gss 
 # Jeff Mielke						revised October 22, 2013
 # Susan Lin and Matt Faytak			revised January 2015 (palate and printing func.)
-# Matt Faytak 						revised February 2019
+# Matt Faytak 						last revised November 2019 (other changes)
 #######################################################################################
 #
 # BASIC COMMAND TO GENERATE AN SSANOVA PLOT (IF 'phone' IS THE NAME OF YOUR FACTOR)
@@ -83,6 +83,7 @@
 #######################################################################################
 
 library(gss)
+library(ggplot2)
 
 #CONVERT POLAR COORDINATES TO CARTESIAN COORDINATES
 make.cartesian <- function(tr, origin=c(0,0)){    
@@ -325,3 +326,16 @@ cart.ssanova <- function(data, data.cat='word', palate=NULL, scale=1, origin.met
 }
 
 
+# ggplot overlay to spline plotting functions (Faytak, Nov. 2019)
+ggss <- function(df, cat, palate_df=NULL){
+	# generate the model df
+	ss_df <- polar.ssanova(df,data.cat=cat)
+	# make base ggplot, then add confidence interval layers
+	spl <- ggplot(ss_df, aes(X, ss.Fit, group=get(cat), color=get(cat))) + geom_path(lwd=0.8)
+	spl_CI_l <- spl + geom_path(data=ss_df, aes(ss.lower.CI.X, ss.lower.CI.Y), lty=3)
+	spl_CIs <- spl_CI_l + geom_path(data=ss_df, aes(ss.upper.CI.X, ss.upper.CI.Y), lty=3)
+	if (!is.null(palate_df)) {
+		spl_CIs <- spl_CIs + annotate("line", x=palate_df$X, y=palate_df$Y, lty=3)
+	}
+	return(spl_CIs + coord_fixed(ratio=1) + ylab("Y"))
+}
