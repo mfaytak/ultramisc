@@ -12,11 +12,14 @@ process-cache.py: a python command line utility for cleaning up
   sets. A speaker-specific ROI mask is applied to each data set.
 
 Usage: python process-cache.py [expdir] [--flop -f]
-  expdir: The experiment directory, which contains a folder for
-          each subject. These in turn contain files called 
-          frames.npy and frames_metadata.pickle.
-  --flop: If used, horizontally mirror the data (to correct for 
-  		  ultrasound probe being oriented backwards).
+  expdir:      The experiment directory, which contains a folder for
+               each subject. These in turn contain files called 
+               frames.npy and frames_metadata.pickle.
+  --flop:      If used, horizontally mirror the data (to correct for 
+  		       ultrasound probe being oriented backwards).
+  --roi:  	   If used, apply a mask to the image to isolate a 
+  		       region of interest. Entire image is cached if not used.
+  --overwrite  Overwrite existing outputs, if specified.
 '''
 
 import argparse
@@ -43,6 +46,20 @@ parser.add_argument("-o",
 					help="Overwrites existing outputs if present.",
 					action="store_true"
 					)
+<<<<<<< HEAD
+parser.add_argument("-f", 
+					"--flop", 
+					help="Horizontally flip the data", 
+					action="store_true"
+					)
+parser.add_argument("-r",
+					"--roi",
+					help="Trim data to a region of interest",
+					action="store_true"
+					)
+
+=======
+>>>>>>> 0f476dee17ab53abaf3fc9322ff58c2e30bd9483
 args = parser.parse_args()
 
 # create some objects we will need to instantiate the converter
@@ -108,9 +125,8 @@ for root,directories,files in os.walk(expdir):
 			probe.pitch = 185           	# based on Ultrasonix C9-5/10 transducer
 			conv = Converter(header, probe)
 
-		print("Defining region of interest ...")
 
-		# get mean frame and apply mask
+		# get mean frame
 		mean_frame = pca_data.mean(axis=0)
 		conv_mean = np.flipud(conv.convert(np.flipud(mean_frame)))
 		plt.title("Mean frame, Spkr {:}".format(subject))
@@ -118,38 +134,48 @@ for root,directories,files in os.walk(expdir):
 		file_ending_mean = "subj{:}_mean.pdf".format(subject)
 		savepath_mean = os.path.join(root,d,file_ending_mean)
 		plt.savefig(savepath_mean)
-		roi_upper = 600
-		roi_lower = 200
-		roi_left = 20
-		roi_right = 50
 
-		# show user the masked data and ask for input on mask
-		while True:
-			mask = us.roi(mean_frame, 
-				upper=roi_upper, 
-				lower=roi_lower,
-				left=roi_left,
-				right=roi_right)
-			masked_mean = mean_frame * mask
-			conv_masked = np.flipud(conv.convert(np.flipud(masked_mean)))
-			plt.title("Mean frame and RoI, Spkr {:}".format(subject))
-			plt.imshow(conv_masked, cmap="Greys_r")
-			file_ending_roi = "subj{:}_roi.pdf".format(subject)
-			savepath_roi = os.path.join(root,d,file_ending_roi)
-			plt.savefig(savepath_roi)
-			good_roi = input("Inspect {:}. Good RoI? (Y/N) ".format(savepath_roi))
+		# mask data according to RoI (or lack thereof)
+		if not args.roi:
+			# TODO build this into us.roi?
+			print("No mask applied to data.")
+			mask = np.ones(pca_data[0].shape, dtype=pca_data[0].dtype)
 
-			# If good, go ahead. If not, ask for new bounds.
-			if good_roi.upper() in ['Y', 'N']:
-				if good_roi.upper() == "Y":
-					break
+		else:
+			print("Defining region of interest ...")
+			# starter boundaries
+			roi_upper = 600
+			roi_lower = 200
+			roi_left = 20
+			roi_right = 50
+
+			# show user masked mean frame, ask for input on mask
+			while True:
+				mask = us.roi(mean_frame, 
+					upper=roi_upper, 
+					lower=roi_lower,
+					left=roi_left,
+					right=roi_right)
+				masked_mean = mean_frame * mask
+				conv_masked = np.flipud(conv.convert(np.flipud(masked_mean)))
+				plt.title("Mean frame and RoI, Spkr {:}".format(subject))
+				plt.imshow(conv_masked, cmap="Greys_r")
+				file_ending_roi = "subj{:}_roi.pdf".format(subject)
+				savepath_roi = os.path.join(root,d,file_ending_roi)
+				plt.savefig(savepath_roi)
+				good_roi = input("Inspect {:}. Good RoI? (Y/N) ".format(savepath_roi))
+
+				# If good, go ahead. If not, ask for new bounds.
+				if good_roi.upper() in ['Y', 'N']:
+					if good_roi.upper() == "Y":
+						break
+					else:
+						roi_upper = int(input("Please provide a new upper bound for RoI (currently {:}): ".format(roi_upper)))
+						roi_lower = int(input("Please provide a new lower bound for RoI (currently {:}): ".format(roi_lower)))
+						roi_left = int(input("Please provide a new left bound for RoI (currently {:}): ".format(roi_left)))
+						roi_right = int(input("Please provide a new right bound for RoI (currently {:}): ".format(roi_right)))
 				else:
-					roi_upper = int(input("Please provide a new upper bound for RoI (currently {:}): ".format(roi_upper)))
-					roi_lower = int(input("Please provide a new lower bound for RoI (currently {:}): ".format(roi_lower)))
-					roi_left = int(input("Please provide a new left bound for RoI (currently {:}): ".format(roi_left)))
-					roi_right = int(input("Please provide a new right bound for RoI (currently {:}): ".format(roi_right)))
-			else:
-				print("Typo, try again ...")
+					print("Typo, try again ...")
 
 		# some filtering parameters based on image size
 		conv_frame = conv.convert(pca_data[0])
