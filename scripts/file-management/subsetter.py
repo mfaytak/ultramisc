@@ -11,7 +11,7 @@ import os
 import shutil
 import sys
 
-from ultramisc.ebutils import read_stimfile
+from ultramisc.ebutils import read_stimfile, read_listfile
 
 # parse argument(s)
 parser = argparse.ArgumentParser()
@@ -19,16 +19,23 @@ parser.add_argument("expdir",
 					help="Experiment directory containing \
 						acquisitions in flat structure"
 					)
+parser.add_argument("distractors",
+					help="Plaintext list of distractor words, \
+						one per line")
 parser.add_argument("-d",
 					"--delete", 
-					help="Delete non-target files in place \
-						(default behavior is to copy target \
+					help="Delete distractor files in place \
+						(default behavior is to move distractor \
 						files to new location)",
 					action="store_true"
 					)
 args = parser.parse_args()
 
 expdir = os.path.normpath(args.expdir)
+
+# desired analysis set; change as required
+distractor_list = read_listfile("distractors.txt", deaccent=True)
+
 
 # issue warning or set up copy location.
 if args.delete:
@@ -46,12 +53,9 @@ if args.delete:
 	if warning == "N":
 		sys.exit()
 else:
-	copy_str = os.path.split(expdir)[1] + "_copy"
+	copy_str = os.path.split(expdir)[1] + "_distractors"
 	copy_dir = os.path.join(expdir, copy_str)
 	os.mkdir(copy_dir)# TODO create the copy location
-
-# desired analysis set; change as required
-target_list = ["FUH", "BUH", "FUW", "BUW", "BAAE", "BIY"]
 
 # iterate over directories within expdir with a *.raw file in them
 rawfile_glob_exp = os.path.join(os.path.normpath(args.expdir),
@@ -62,12 +66,19 @@ rawfile_glob_exp = os.path.join(os.path.normpath(args.expdir),
 for rf in glob.glob(rawfile_glob_exp):
 	parent = os.path.dirname(rf)
 	acq = os.path.split(parent)[1]
-	stimfile = os.path.join(parent,"stim.txt")
-	stim = read_stimfile(stimfile)
+	stimfile = os.path.join(parent,"word.txt")
+
+	try:
+		stim = read_stimfile(stimfile, deaccent=True)
+	except FileNotFoundError:
+		print("No alignment TG in {}; skipping".format(acq))
+		continue
+
 	if args.delete:
-		if stim not in target_list: 
+		if stim in distractor_list: 
 			shutil.rmtree(parent)
 	else:
-		if stim in target_list:
+		if stim in distractor_list:
 			copy_path = os.path.join(copy_dir,acq)
 			shutil.copytree(parent, copy_path)
+			shutil.rmtree(parent)
