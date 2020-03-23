@@ -1,4 +1,5 @@
 import os
+from unicodedata import normalize
 
 def read_echob_metadata(rawfile):
     '''
@@ -26,10 +27,42 @@ def read_echob_metadata(rawfile):
     
     return nscanlines, npoints, junk
 
-def read_stimfile(stimfile):
+def _deaccent(mystr):
     '''
-    Read plaintext stim.txt file; return stim as string.
+    Convert string to standardized bytes object and return 
+      decoded string without any accented characters to 
+      facilitate item comparison.
+    '''
+    strip_bytes = normalize('NFC', mystr).encode('ascii','ignore')
+    string_back = strip_bytes.decode('utf-8')
+
+    return string_back
+
+
+def read_stimfile(stimfile, deaccent=False):
+    '''
+    Read plaintext stim.txt file; return stim as string. 
+    Cleanup using _deaccent() optional.
     '''
     with open(stimfile, "r") as stfile:
         stim = stfile.read().rstrip('\n')
+
+    if deaccent:
+        stim = _deaccent(stim)
+
     return stim
+
+def read_listfile(listfile, deaccent=False):
+    '''
+    Read stimulus list file (for subsetting, naming 
+      distractors, etc.) and return plaintext list.
+    Cleanup using _deaccent() optional.
+    '''
+    with open(listfile, "r") as lfile:
+        outlist = lfile.read().splitlines()
+
+    if deaccent:
+        outlist = [_deaccent(l) for l in outlist]
+
+    return outlist
+
