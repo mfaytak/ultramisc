@@ -24,6 +24,8 @@ missing_files = 0
 
 # generate the rest of the output file
 for dirs, subdirs, files in os.walk(basedir):
+	# exclude discard, subset, distractor, etc. directories from search. change the set as needed
+	subdirs[:] = [s for s in subdirs if s not in set(['discards','_discards','affricates','_affricates'])]
 	for textgrid in files:
 
 		# only check for .con files for which a .ch1.TextGrid file exists

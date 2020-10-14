@@ -1,35 +1,34 @@
 #/usr/bin/env python
 
 '''
-ssanova-formatter.py: Extract pairs of columns from EdgeTrak-produced .con files 
+format-con.py: Extract pairs of columns from EdgeTrak-produced .con files 
 to generate CSV files that Jeff Mielke's tongue_ssanova.R can operate on.
-Extracts only the center frame in a sequence.
+Extracts single target frames but can be extended to sequences.
 Usage
-  $ python ssanova-formatter.py dirname > [output file].txt
+  $ python format-con.py dirname
 Arguments
-  dirname  dir containing all files described below
-Requirements for a well-formatted output:
-1. Each acquisition (consisting of audio, ultrasound images, a TextGrid, a frame synchronization file, and a .con file output from EdgeTrak) is in a separate subdirectory in the parent directory.
-2. Speaker ID is given before an underscore in the top-level directory name (i.e., /.../SUBJECT_* is called as dirname and fed into basedir).
+  directory  dir containing all files described below
+Assumptions:
+1. Each acquisition (consisting of audio, ultrasound images, a TextGrid, a frame synchronization file, and a .con file output from EdgeTrak) is in a separate subdirectory in the session directory.
+2. Speaker ID is given before an underscore in the top-level directory name (i.e., /.../SUBJECT_* is called as directory and fed into basedir).
 3. Specific formatting requirements for files (which you may need to alter):
-	frame synchronization file with extention .sync.txt file (list of frame acquisition times w.r.t. an associated audio recording)
-	some number of .bmp ultrasound frame files *.###.bmp, where ### is a frame number consisting of any number of [0-9]
+	frame synchronization TextGrid with extention .sync.TextGrid (frame acquisition times w.r.t. an associated audio recording)
+	some number of .bmp ultrasound frame files *.###.bmp, where ### is a frame number
 '''
 
 # Authors: Matthew Faytak (faytak@ucla.edu) Copyright (c) 2015
-# Last modified 11-2018
+# Last modified 10-2020
 
 import audiolabel
 import glob
 import os, sys, re
 
 from csv import reader
-from operator import itemgetter
+from ultramisc.ebutils import read_stimfile
 
 # read in arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("directory", help="Experiment directory containing all subjects")
-parser.add_argument("-f", "--flank", help="Number of frames surrounding midpoint frame to extract", action='store_true')
 args = parser.parse_args()
 
 basedir = args.directory
@@ -39,119 +38,111 @@ if not os.path.exists(basedir):
 	ArgumentParser.print_help
 	sys.exit(2)
 
-if args.flank:
-	flank = args.flank
-else:
-	flank = 0
-
 out_file = os.path.join(basedir, os.path.split(basedir)[-1] + "_cons.txt")
 
 # generate header of output file
-head = '\t'.join(["speaker","acq","token","ctrFrame","vowel","X","Y"])
+# this is for a particular project's metadata, but can be retooled
+head = '\t'.join(["speaker","acq","token","frameIdx","vowel","X","Y"])
 with open(out_file, "w") as out:
 	out.write(head + "\n")
 
-# define relevant vowel labels; change as required
-vow = re.compile("^(AE1|IY1|UW1|OW1|UH1)")
-
-# find speaker; initialize token counter list
+# find speaker
 spkr = "S" + re.sub("[^0-9]", "", basedir)
-token_ct = []
+
+# project-specific grouping of stimuli
+low_set = ["baodian","paoxie","daoyan",
+       "taoyuan","gaojian","kaojuan"]
+
+# below on line 96, we search for any label on an otherwise empty tier.
+# if running directly on forced aligner output, you can search for 
+# a set of labels like so:
+# vow = re.compile("^(AE1|IY1|UW1|OW1|UH1)")
+# then search for "vow" (see lines 97-98)
 
 # generate the rest of the output file
-for dirs, subdirs, files in os.walk(basedir):
-	for textgrid in files:
+# search over .con files in first layer of subdirs
+glob_exp = os.path.join(basedir,"*","*.con")
+token_ct = []
 
-		if not '.ch1.textgrid' in textgrid.lower():
-			continue
+for con in glob.glob(glob_exp):
+    parent = os.path.dirname(con)
+    basename = os.path.split(parent)[1]
 
-		# get the support file names
-		if 'bpr' in textgrid.lower():
-			basename = textgrid.split('.')[0] + '.bpr'
-		else:
-			basename = textgrid.split('.')[0]
-		
-		con_file = os.path.join(dirs, str(basename + '.con'))
-		con_file = con_file.replace('.bpr', '')
+    # get TGs
+    tg = os.path.join(parent,str(basename + ".ch1.TextGrid"))
+    sync_tg = os.path.join(parent,str(basename + ".sync.TextGrid"))
 
-		# .sync.txt file into a list
-		sync = os.path.join(dirs, str(basename + '.sync.txt'))
-		sync_lines = []
-		with open(sync, 'r') as s:
-			for line in s:
-				try:
-					sync_lines.append(float(line.strip().split("\t")[0]))
-				except ValueError:
-					pass # ignore line if a header is present
+    # get stimulus; other metadata
+    stimfile = os.path.join(parent,"stim.txt")
+    stim = read_stimfile(stimfile)
+    if stim in low_set:
+        tone = "low"
+    else:
+        tone = "high"
 
-		# get first frame index
-		bmp_list = glob.glob(os.path.join(dirs,'*.bmp'))
-		fr_idx = []
-		for bmp in bmp_list:
-			fr_num = re.search('.(\d+).bmp$',bmp)
-			fr_idx.append(int(fr_num.group(1))) # the int is crucial here: otherwise, min list idx (b/c list of strings!) will be returned
-		first_fr = min(fr_idx)
-		last_fr = max(fr_idx)
-		
-		# instantiate LabelManager
-		pm = audiolabel.LabelManager(from_file=os.path.join(dirs,textgrid), from_type='praat')
+    # get condition ("ba"/"init"), place, aspiration (in that order in md)
+    # replace with your own metadata as needed
+    md = os.path.join(parent,"meta.txt")
+    with open(md) as csvfile:
+        meta = reader(csvfile, delimiter="\t")
+        tbl = [row for row in meta] # a little janky but works
+        condition = tbl[1][0]
+        place = tbl[1][1]
+        aspiration = tbl[1][2]
 
-		# for all relevant vowel intervals
-		for v,m in pm.tier(0).search(vow, return_match=True):
-			
-			# skip any tokens from non-target words
-			pron = pm.tier(1).label_at(v.center).text
-			if pron not in ["BUH", "FUH", "BUW", "BOOW", "BAAE", "BIY"]:
-				continue
-			# correct UH1 vowel depending on pronunciation FUH or BUH
-			elif pron == "FUH": # TODO handle occasional FUW
-				phone = "VU"
-			elif pron == "BUH":
-				phone = "BU"
-			elif pron == "BOOW":
-				phone = "UW"
-			else:
-				phone = v.text.replace('1','')
+    # instantiate audio TG handler; get release time and phone label
+    # assumes one labeled interval on the searched tier
+    pm = audiolabel.LabelManager(from_file=tg, from_type='praat')
+    clos = pm.tier('closure').search(".", return_match=True)[0][0]
+    # alternately, search for a set: (see lines 56-60)
+    # v = pm.tier('segments').search(vow, return_match=True)[0][0]
+    release_time = clos.t2
+    phone = clos.text
+    
+    # get token number
+    token_ct.append(phone)
+    token = token_ct.count(phone)
+    
+    # instantiate sync TG handler; get absolute index of frame
+    sc = audiolabel.LabelManager(from_file=sync_tg, from_type='praat')
+    release_idx = sc.tier('pulse_idx').label_at(release_time).text
+    abs_fr_idx = int(release_idx) - 1 # should yield 121 for first file
+    
+    # get index of first extracted frame
+    bmp_list = glob.glob(os.path.join(parent,'*.bmp'))
+    fr_idx = []
+    for bmp in bmp_list:
+        fr_num = re.search('.(\d+).bmp$',bmp)
+        fr_idx.append(int(fr_num.group(1))) 
+        # the int is crucial here: otherwise, min list idx (b/c list of strings!) will be returned
+    first_fr = min(fr_idx)
+    
+    # get frame index relative to extracted frames, = column number in .con file
+    col_n = abs_fr_idx - first_fr 
 
-			# collect word/type information and adjust token count
-			token_ct.append(phone)
-			token = token_ct.count(phone)
-
-			# find frame number corresponding to center of C in textgrid
-			v_midpoint = v.center
-			diff_list = []
-			for s in sync_lines:
-				diff_list.append(abs(v_midpoint - s))
-			ctr_match = min(enumerate(diff_list), key=itemgetter(1))[0] # ctr_match is 77, which is not in range at all
-			
-			# check to ensure that it's within the recording window
-			if first_fr > ctr_match or last_fr < ctr_match:
-				print("WARNING ({}):".format(con_file))
-				print("\t target at frame {} is outside of extracted frames; skipping.".format(ctr_match))
-				print("\tIf there is a double production, disregard this warning.")
-				continue
-
-			# translate center frame numer into an index for pairs of columns in .con file	
-			col_n = ctr_match - first_fr 
-
-			# locate .con file and extract X, Y using index defined in col_n; print entire array
-			with open(con_file) as con:
-				with open(out_file,"a") as out:
-					csvreader = reader(con, delimiter="\t")
-					d = list(csvreader)
-					rows = sum(1 for row in d) # TODO rows = 100, generally
-
-					for fr in range(col_n - int(args.flank), (col_n + int(args.flank))+1):
-						x_col = (2*fr)-2
-						y_col = (2*fr)-1
-
-						for t in range(0,rows):
-							try:
-								x_val = d[t][x_col]
-								y_val = d[t][y_col]
-							except IndexError:
-								print("WARNING: other problem accessing {}):".format(con_file))
-								sys.exit(2)
-					
-							row_out = '\t'.join([spkr,basename,str(token),str(ctr_match),phone,x_val,y_val])
-							out.write(row_out + "\n")
+    # pull the appropriate columns from .con file and save to CSV
+    with open(con) as conf:
+        with open(out_file,"a") as out:
+            csvreader = reader(conf, delimiter="\t")
+            d = list(csvreader)
+            rows = sum(1 for row in d) # rows = 100, generally
+            x_col = (2*col_n)-2
+            y_col = (2*col_n)-1
+            for t in range(0,rows):
+                try:
+                    x_val = d[t][x_col]
+                    y_val = d[t][y_col]
+                except IndexError:
+                    print("WARNING: some problem accessing {}):".format(con_file))
+                    sys.exit(2)
+                
+                row_out = '\t'.join([
+                    spkr,
+                    basename, str(token),
+                    str(abs_fr_idx),
+                    condition,
+                    phone, place, aspiration, tone,
+                    x_val, y_val
+                ])
+                
+                out.write(row_out + "\n")
